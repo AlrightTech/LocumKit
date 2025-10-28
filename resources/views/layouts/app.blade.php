@@ -8,8 +8,12 @@
     <meta name="description"
         content="LocumKit is a bespoke platform which acts for Locum Optometrists and Locum Dispensing Opticians. We offer it all from Accountancy to locum bookings. We connects locum Optometrists and Opticians with employers">
     <meta name="keywords" content="Locum agency, Locum optician agency, Locum dispensing optician">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Cross-browser compatibility meta tags -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
 
     <link href="/frontend/locumkit-template/new-design-assets/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <link href="/frontend/locumkit-template/new-design-assets/css/animations.min.css" type="text/css" rel="stylesheet">
@@ -37,6 +41,60 @@
                 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
             f.parentNode.insertBefore(j, f);
         })(window, document, 'script', 'dataLayer', `{{ config('app.google_tag_manager_id') }}`);
+    </script>
+
+    <!-- Cross-browser compatibility polyfills -->
+    <script>
+        // Polyfill for older browsers
+        if (!Array.prototype.includes) {
+            Array.prototype.includes = function(searchElement, fromIndex) {
+                return this.indexOf(searchElement, fromIndex) !== -1;
+            };
+        }
+        
+        // Ensure console exists for older browsers
+        if (!window.console) {
+            window.console = {
+                log: function() {},
+                warn: function() {},
+                error: function() {}
+            };
+        }
+        
+        // Fix for IE11 and older browsers - Simple fetch polyfill
+        if (!window.fetch) {
+            window.fetch = function(url, options) {
+                return new Promise(function(resolve, reject) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open(options ? options.method || 'GET' : 'GET', url);
+                    
+                    if (options && options.headers) {
+                        Object.keys(options.headers).forEach(function(key) {
+                            xhr.setRequestHeader(key, options.headers[key]);
+                        });
+                    }
+                    
+                    xhr.onload = function() {
+                        resolve({
+                            ok: xhr.status >= 200 && xhr.status < 300,
+                            status: xhr.status,
+                            json: function() {
+                                return Promise.resolve(JSON.parse(xhr.responseText));
+                            },
+                            text: function() {
+                                return Promise.resolve(xhr.responseText);
+                            }
+                        });
+                    };
+                    
+                    xhr.onerror = function() {
+                        reject(new Error('Network error'));
+                    };
+                    
+                    xhr.send(options ? options.body : null);
+                });
+            };
+        }
     </script>
 
     <style>

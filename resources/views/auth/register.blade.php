@@ -27,6 +27,116 @@
         padding-right: 15px !important;
     }
 }
+
+        /* Enhanced validation styles */
+        .form-control.error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .form-control.success {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        .css_error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+        
+        .password-strength-indicator {
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        
+        .password-strength-indicator .strength-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        
+        .password-strength-indicator .strength-item i {
+            margin-right: 5px;
+            width: 12px;
+        }
+        
+        .required-stars {
+            color: #dc3545;
+        }
+        
+        .field-help-text {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+        
+        .validation-summary {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .validation-summary h6 {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .validation-summary ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .validation-summary li {
+            margin-bottom: 2px;
+        }
+
+        /* reCAPTCHA responsive styles */
+        .g-recaptcha {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        /* Responsive reCAPTCHA scaling */
+        @media (max-width: 575px) {
+            .g-recaptcha {
+                transform: scale(0.77);
+                transform-origin: 0 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .g-recaptcha {
+                transform: scale(0.65);
+                transform-origin: 0 0;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .g-recaptcha {
+                transform: scale(0.55);
+                transform-origin: 0 0;
+            }
+        }
+
+        /* Cross-browser compatibility for reCAPTCHA */
+        .g-recaptcha > div {
+            margin: 0 auto;
+        }
+
+        /* Ensure reCAPTCHA works in all browsers */
+        .recaptcha-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 78px;
+            width: 100%;
+        }
         
     </style>
 @endpush

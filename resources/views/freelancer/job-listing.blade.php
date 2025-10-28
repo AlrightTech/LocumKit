@@ -112,6 +112,9 @@
                                                         <ul>
                                                             <li> {!! $job->job_view_link !!} </li>
                                                             <li> {!! $job->cancel_action_link !!} </li>
+                                                            @if($job->job_complete_link)
+                                                                <li> {!! $job->job_complete_link !!} </li>
+                                                            @endif
                                                         </ul>
                                                     </td>
                                                 </tr>
@@ -133,3 +136,37 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script type="text/javascript">
+        function markJobCompleted(jobId) {
+            $('div#alert-confirm-modal #alert-message').html('Are you sure you want to mark this job as completed?');
+            $('div#alert-confirm-modal').addClass('in');
+            $('div#alert-confirm-modal').css('display', 'block');
+            $('div#alert-confirm-modal #confirm').click(function() {
+                $("#loader-div").show();
+                $.ajax({
+                    'url': `/mark-job-completed/${jobId}`,
+                    'type': 'POST',
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector("meta[name='csrf-token']").content,
+                    },
+                    'success': function(response) {
+                        $("#loader-div").hide();
+                        $('div#alert-confirm-modal').removeClass('in');
+                        $('div#alert-confirm-modal').css('display', 'none');
+                        messageBoxOpen("Job has been marked as completed successfully.");
+                        location.reload();
+                    },
+                    'error': function(xhr) {
+                        $("#loader-div").hide();
+                        $('div#alert-confirm-modal').removeClass('in');
+                        $('div#alert-confirm-modal').css('display', 'none');
+                        messageBoxOpen("Error: " + (xhr.responseJSON?.message || "Something went wrong"));
+                    }
+                });
+                messageBoxClose();
+            });
+        }
+    </script>
+@endpush

@@ -203,6 +203,16 @@ Route::group(["middleware" => ["auth", "verified", "check.freelancer"], "prefix"
         Route::resource('locumlogbook/referral-pathways', LocumlogbookReferralPathwayController::class);
         Route::resource('locumlogbook/practice-info', LocumlogbookPracticeInfoController::class);
     });
+
+    // CPD Submission Routes
+    Route::group(['prefix' => 'cpd', 'as' => 'cpd.'], function () {
+        Route::get('/', [\App\Http\Controllers\Freelancer\CpdSubmissionController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Freelancer\CpdSubmissionController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Freelancer\CpdSubmissionController::class, 'store'])->name('store');
+        Route::get('/{cpdSubmission}', [\App\Http\Controllers\Freelancer\CpdSubmissionController::class, 'show'])->name('show');
+        Route::get('/{cpdSubmission}/edit', [\App\Http\Controllers\Freelancer\CpdSubmissionController::class, 'edit'])->name('edit');
+        Route::put('/{cpdSubmission}', [\App\Http\Controllers\Freelancer\CpdSubmissionController::class, 'update'])->name('update');
+    });
 });
 
 Route::group(["prefix" => "ajax", "as" => "ajax."], function () {
@@ -300,6 +310,8 @@ Route::group(["middleware" => ["auth", "verified"]], function () {
 
     Route::get("/freeze-job", [JobManagementController::class, 'freezeJob'])->name('freeze-job');
     Route::get("/cancel-job", [JobManagementController::class, 'cancelJob'])->name('cancel-job');
+    Route::post("/mark-job-completed/{id}", [JobManagementController::class, 'markJobAsCompleted'])->name('mark-job-completed');
+    Route::get("/job/accept-private/{token}", [JobManagementController::class, 'acceptJobViaEmail'])->name('accept-job-via-email');
     Route::get("/block-user", [BlockUserController::class, 'blockUser'])->name('block-user');
     Route::post("/employer/block-user/{id}", [BlockUserController::class, 'blockUserPost'])->name('block-user.post');
     Route::any("/expense-cost-form", [HomeController::class, 'expenseCostForm'])->middleware(["auth", "verified", "can:is_freelancer"])->name('expense-cost-form');

@@ -159,14 +159,28 @@ class HomeController extends Controller
             $email = $request->input('email');
             $message = $request->input('message');
             try {
-                    Mail::send("mail.contact-mail-admin", [
-    "name" => $name,
-    "email" => $email,
-    "userMessage" => $message, // Renamed to avoid conflict
-], function ($mailable) {
-    $mailable->subject(config("app.name") . " new contact message");
-    $mailable->to(config('app.admin_mail'));
-});
+                // Save complaint to database
+                $complaint = \App\Models\Complaint::create([
+                    'name' => $name,
+                    'email' => $email,
+                    'message' => $message,
+                    'status' => \App\Models\Complaint::STATUS_OPEN,
+                ]);
+
+                // Send notification to admins
+                $admins = \App\Models\User::where('user_acl_role_id', \App\Models\User::ROLE_ADMIN)->get();
+                foreach ($admins as $admin) {
+                    Mail::to($admin->email)->send(new \App\Mail\NewComplaintNotification($complaint));
+                }
+
+                Mail::send("mail.contact-mail-admin", [
+                    "name" => $name,
+                    "email" => $email,
+                    "userMessage" => $message, // Renamed to avoid conflict
+                ], function ($mailable) {
+                    $mailable->subject(config("app.name") . " new contact message");
+                    $mailable->to(config('app.admin_mail'));
+                });
             } catch (Exception $ignore) {
                // dd($ignore);
             }

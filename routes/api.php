@@ -92,6 +92,7 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
     Route::post("job-list", [JobController::class, "jobList"]);
     Route::post("job-view", [JobController::class, "jobView"]);
     Route::post("job-action", [JobController::class, "jobAction"]);
+    Route::post("mark-job-completed", [JobController::class, "markJobAsCompleted"]);
     Route::post("private-job", [PrivateJobController::class, "manage_private_job"]);
     Route::post("private-job-view", [PrivateJobController::class, "view_private_job"]);
     Route::post("private-job-attend", [PrivateJobController::class, "attend_private_job"]);

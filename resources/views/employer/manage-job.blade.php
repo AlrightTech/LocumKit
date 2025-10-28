@@ -5,6 +5,57 @@
             width: 28em !important;
             margin: 0 auto 20px;
         }
+        
+        .timeline-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .timeline-item label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-preview {
+            background-color: #e9ecef;
+            border-radius: 4px;
+            padding: 8px;
+            border-left: 3px solid #2dc9ff;
+        }
+        
+        .timeline-preview-text {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .timeline-preview .rate-preview,
+        .timeline-preview .time-preview,
+        .timeline-preview .date-preview {
+            font-weight: bold;
+            color: #2dc9ff;
+        }
+        
+        .removeclass {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .removeclass:hover {
+            transform: scale(1.1);
+        }
+        
+        #timeline_box h4 {
+            color: #2dc9ff;
+            margin-bottom: 10px;
+        }
+        
+        #timeline_box .text-muted {
+            margin-bottom: 20px;
+        }
     </style>
 @endpush
 @section('content')
@@ -118,52 +169,62 @@
                                         </div>
                                     </div>
                                     <div class="col-md-12" id="timeline_box" @if (isset($job) && $job && sizeof($job->job_post_timelines) > 0) style="" @else style="display:none;" @endif>
-                                        <div class="col-md-4">Timeline date</div>
-                                        <div class="col-md-8 list_block">
+                                        <div class="col-md-12">
+                                            <h4>Rate Increase Timeline</h4>
+                                            <p class="text-muted">Set up automatic rate increases if the job is not accepted by specific times.</p>
+                                        </div>
+                                        <div class="col-md-12 list_block">
                                             @if (isset($job) && $job && sizeof($job->job_post_timelines) > 0)
                                                 @foreach ($job->job_post_timelines as $timeline)
-                                                    <div class="add_block">
-                                                        <div class="col-md-4 no-padding-left">
-                                                            <input type="text" name="job_date_new[]" value="{{ get_date_with_default_format($timeline->job_date_new) }}" class="form-control margin-bottom datepicker" placeholder="Enter date"
-                                                                   required>
+                                                    <div class="add_block timeline-item">
+                                                        <div class="row">
+                                                            <div class="col-md-3">
+                                                                <label>Date</label>
+                                                                <input type="date" name="job_date_new[]" value="{{ $timeline->job_date_new->format('Y-m-d') }}" class="form-control margin-bottom timeline-date" placeholder="Enter date" required>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label>Time</label>
+                                                                <select name="job_timeline_time[]" class="form-control margin-bottom timeline-time" required>
+                                                                    <option value="">Select Time</option>
+                                                                    @for($hour = 9; $hour <= 17; $hour++)
+                                                                        @for($minute = 0; $minute < 60; $minute += 30)
+                                                                            @php
+                                                                                $timeValue = sprintf('%02d:%02d', $hour, $minute);
+                                                                                $timeDisplay = sprintf('%02d:%02d', $hour, $minute);
+                                                                            @endphp
+                                                                            <option value="{{ $timeValue }}" @selected($timeline->job_timeline_time == $timeValue)>{{ $timeDisplay }}</option>
+                                                                        @endfor
+                                                                    @endfor
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label>Increase Rate</label>
+                                                                <input type="number" name="job_rate_new[]" value="{{ $timeline->job_rate_new }}" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label>Hours</label>
+                                                                <select name="job_timeline_hrs[]" class="form-control margin-bottom timeline-hrs" required>
+                                                                    <option value="">Hours</option>
+                                                                    @for($i = 1; $i <= 24; $i++)
+                                                                        <option value="{{ $i }}" @selected($timeline->job_timeline_hrs == $i)>{{ $i }}</option>
+                                                                    @endfor
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label>&nbsp;</label>
+                                                                <div class="timeline-preview">
+                                                                    <small class="text-muted">Preview:</small><br>
+                                                                    <small class="timeline-preview-text">Increase by £<span class="rate-preview">{{ $timeline->job_rate_new }}</span> if not accepted by <span class="time-preview">{{ $timeline->job_timeline_time ?? '09:00' }}</span> on <span class="date-preview">{{ $timeline->job_date_new->format('d/m/Y') }}</span></small>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-1">
+                                                                <label>&nbsp;</label>
+                                                                <span class="removeclass small2 btn btn-danger btn-sm" style="margin-top: 25px;"><i class="fa fa-times" aria-hidden="true"></i></span>
+                                                            </div>
                                                         </div>
-                                                        <div class="col-md-3 col-sm-12 no-padding-left job_price_div">
-                                                            <input type="text" name="job_rate_new[]" value="{{ $timeline->job_rate_new }}" class="form-control margin-bottom" placeholder="Price" required>
-                                                        </div>
-                                                        <div class="col-md-4 no-padding-left job_hrs_div no-padding-right">
-                                                            <select name="job_timeline_hrs[]" class="form-control margin-bottom" required>
-                                                                <option value="">Hours</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '1') value="1">1</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '2') value="2">2</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '3') value="3">3</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '4') value="4">4</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '5') value="5">5</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '6') value="6">6</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '7') value="7">7</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '8') value="8">8</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '9') value="9">9</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '10') value="10">10</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '11') value="11">11</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '12') value="12">12</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '13') value="13">13</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '14') value="14">14</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '15') value="15">15</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '16') value="16">16</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '17') value="17">17</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '18') value="18">18</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '19') value="19">19</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '20') value="20">20</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '21') value="21">21</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '22') value="22">22</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '23') value="23">23</option>
-                                                                <option @selected($timeline->job_timeline_hrs == '24') value="24">24</option>
-                                                            </select>
-                                                        </div>
-                                                        <span class="removeclass small2"><i class="fa fa-times" aria-hidden="true"></i></span>
                                                     </div>
                                                 @endforeach
                                             @endif
-
                                         </div>
                                     </div>
                                     <div class="col-md-12" id="timeline_box_new"></div>
@@ -299,43 +360,81 @@
     <script type="text/javascript">
 $(document).ready(function() {
     const blockHtml = `
-        <div class="add_block">
-            <div class="col-md-4 no-padding-left">
-                <input type="text" name="job_date_new[]" class="form-control margin-bottom datepicker in_date" placeholder="Enter date" required>
+        <div class="add_block timeline-item">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Date</label>
+                    <input type="date" name="job_date_new[]" class="form-control margin-bottom timeline-date" placeholder="Enter date" required>
+                </div>
+                <div class="col-md-2">
+                    <label>Time</label>
+                    <select name="job_timeline_time[]" class="form-control margin-bottom timeline-time" required>
+                        <option value="">Select Time</option>
+                        <option value="09:00">09:00</option>
+                        <option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option>
+                        <option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option>
+                        <option value="11:30">11:30</option>
+                        <option value="12:00">12:00</option>
+                        <option value="12:30">12:30</option>
+                        <option value="13:00">13:00</option>
+                        <option value="13:30">13:30</option>
+                        <option value="14:00">14:00</option>
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                        <option value="16:00">16:00</option>
+                        <option value="16:30">16:30</option>
+                        <option value="17:00">17:00</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label>Increase Rate</label>
+                    <input type="number" name="job_rate_new[]" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required>
+                </div>
+                <div class="col-md-2">
+                    <label>Hours</label>
+                    <select name="job_timeline_hrs[]" class="form-control margin-bottom timeline-hrs" required>
+                        <option value="">Hours</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="16">16</option>
+                        <option value="17">17</option>
+                        <option value="18">18</option>
+                        <option value="19">19</option>
+                        <option value="20">20</option>
+                        <option value="21">21</option>
+                        <option value="22">22</option>
+                        <option value="23">23</option>
+                        <option value="24">24</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label>&nbsp;</label>
+                    <div class="timeline-preview">
+                        <small class="text-muted">Preview:</small><br>
+                        <small class="timeline-preview-text">Increase by £<span class="rate-preview">0</span> if not accepted by <span class="time-preview">09:00</span> on <span class="date-preview">--/--/----</span></small>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <label>&nbsp;</label>
+                    <span class="removeclass small2 btn btn-danger btn-sm" style="margin-top: 25px;"><i class="fa fa-times" aria-hidden="true"></i></span>
+                </div>
             </div>
-            <div class="col-md-3 col-sm-12 no-padding-left job_price_div">
-                <input type="number" min="0" max="9999999" name="job_rate_new[]" class="form-control margin-bottom in_rate" placeholder="Price" required oninput="if (this.value.length > 6) this.value = this.value.slice(0, 6); validateJobRate(this)" >
-            </div>
-            <div class="col-md-4 no-padding-left job_hrs_div no-padding-right">
-                <select name="job_timeline_hrs[]" class="form-control margin-bottom in_hrs" required>
-                    <option value="">Hours</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
-                    <option value="13">13</option>
-                    <option value="14">14</option>
-                    <option value="15">15</option>
-                    <option value="16">16</option>
-                    <option value="17">17</option>
-                    <option value="18">18</option>
-                    <option value="19">19</option>
-                    <option value="20">20</option>
-                    <option value="21">21</option>
-                    <option value="22">22</option>
-                    <option value="23">23</option>
-                    <option value="24">24</option>
-                </select>
-            </div>
-            <span class="removeclass small2"><i class="fa fa-times" aria-hidden="true"></i></span>
         </div>
     `;
 
@@ -347,8 +446,29 @@ $(document).ready(function() {
         } else {
             $('.add_block:last-child .removeclass').show();
         }
-        datePickerCaller(); // Initialize the date picker
+        
+        // Add event listeners for preview updates
+        updateTimelinePreview($('.add_block:last-child'));
     }
+
+    function updateTimelinePreview(block) {
+        const date = block.find('.timeline-date').val();
+        const time = block.find('.timeline-time').val();
+        const rate = block.find('.timeline-rate').val();
+        
+        const datePreview = date ? new Date(date).toLocaleDateString('en-GB') : '--/--/----';
+        const timePreview = time || '09:00';
+        const ratePreview = rate || '0';
+        
+        block.find('.date-preview').text(datePreview);
+        block.find('.time-preview').text(timePreview);
+        block.find('.rate-preview').text(ratePreview);
+    }
+
+    // Add event listeners for existing blocks
+    $(document).on('change', '.timeline-date, .timeline-time, .timeline-rate', function() {
+        updateTimelinePreview($(this).closest('.add_block'));
+    });
 
     // Click event for adding new blocks
     $("#add_timeline").click(function() {
@@ -358,16 +478,20 @@ $(document).ready(function() {
     // Initial block render when checkbox is checked
     $('input[name="set_timeline"]').click(function() {
         if (this.checked) {
-            $('.in_date').attr('required', 'true');
-            $('.in_rate').attr('required', 'true');
-            $('.in_hrs').attr('required', 'true');
+            $('.timeline-date').attr('required', 'true');
+            $('.timeline-rate').attr('required', 'true');
+            $('.timeline-hrs').attr('required', 'true');
+            $('.timeline-time').attr('required', 'true');
             $("#timeline_box").show();
             $("#show_add").show();
-            addBlock(); // Append the first block
+            if ($('.add_block').length === 0) {
+                addBlock(); // Append the first block
+            }
         } else {
-            $('.in_date').removeAttr('required');
-            $('.in_rate').removeAttr('required');
-            $('.in_hrs').removeAttr('required');
+            $('.timeline-date').removeAttr('required');
+            $('.timeline-rate').removeAttr('required');
+            $('.timeline-hrs').removeAttr('required');
+            $('.timeline-time').removeAttr('required');
             $("#timeline_box").hide();
             $("#show_add").hide();
             $('.list_block').html(""); // Clear the blocks
@@ -379,6 +503,11 @@ $(document).ready(function() {
         if ($(".add_block").length > 1) {
             $(this).parent('.add_block').remove();
         }
+    });
+
+    // Initialize existing blocks
+    $('.add_block').each(function() {
+        updateTimelinePreview($(this));
     });
 });
 

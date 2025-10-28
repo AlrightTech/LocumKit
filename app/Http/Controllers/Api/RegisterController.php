@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Nette\Utils\Random;
 use App\Notifications\EmailVerficationApp;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 
 
@@ -31,13 +31,26 @@ class RegisterController extends Controller
     public function registerForm(Request $request)
     {
         $step = $request->input("step");
-        $response = match (intval($step)) {
-            1 => $this->get_form_field_setp_1(),
-            3 => $this->get_form_field_setp_3($request->toArray()),
-            4 => $this->checkUserRecordExist($request->toArray()),
-            5 => $this->saveUserRecords($request->toArray()),
-            default => null
-        };
+        $stepInt = intval($step);
+        
+        switch ($stepInt) {
+            case 1:
+                $response = $this->get_form_field_setp_1();
+                break;
+            case 3:
+                $response = $this->get_form_field_setp_3($request->toArray());
+                break;
+            case 4:
+                $response = $this->checkUserRecordExist($request->toArray());
+                break;
+            case 5:
+                $response = $this->saveUserRecords($request->toArray());
+                break;
+            default:
+                $response = null;
+                break;
+        }
+        
         if (is_null($response)) {
             return response()->error('Bad Request');
         }
@@ -298,11 +311,90 @@ class RegisterController extends Controller
 
     public function saveUserRecords($form_step)
     {
-        $already_check = User::where('login', $form_step['personal_info']['username'])->first();
+        // Extract personal info for validation
+        $personal_info = $form_step['personal_info'] ?? [];
+        $role_id = isset($form_step['user_type']['role']) ? $form_step['user_type']['role'] : '';
+        
+        // Validate the input data
+        $validation_rules = [
+            'firstname' => ['required', 'string', 'min:2', 'max:255'],
+            'lastname' => ['required', 'string', 'min:2', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'username' => ['required', 'string', 'min:6', 'max:20', 'regex:/^[a-zA-Z0-9_-]+$/'],
+            'password' => [
+                'required', 
+                'string', 
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
+            ],
+            'address' => ['required', 'string', 'min:10', 'max:255'],
+            'town' => ['required', 'string', 'min:2', 'max:100'],
+            'postcode' => ['required', 'string', 'regex:/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i'],
+        ];
+
+        // Role-specific validations
+        if ($role_id == 2) { // Locum
+            $validation_rules['mobile_number'] = ['required', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+            $validation_rules['telephone'] = ['nullable', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+        } elseif ($role_id == 3) { // Employer
+            $validation_rules['telephone'] = ['required', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+            $validation_rules['mobile_number'] = ['nullable', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+            $validation_rules['store_name'] = ['required', 'string', 'min:5', 'max:255'];
+        }
+
+        $validator = Validator::make($personal_info, $validation_rules, [
+            'firstname.required' => 'First name is required.',
+            'firstname.min' => 'First name must be at least 2 characters.',
+            'lastname.required' => 'Last name is required.',
+            'lastname.min' => 'Last name must be at least 2 characters.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'username.required' => 'Username is required.',
+            'username.min' => 'Username must be at least 6 characters.',
+            'username.max' => 'Username must not exceed 20 characters.',
+            'username.regex' => 'Username can only contain letters, numbers, hyphens, and underscores.',
+            'password.required' => 'Password is required.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+            'address.required' => 'Address is required.',
+            'address.min' => 'Address must be at least 10 characters.',
+            'town.required' => 'Town/City is required.',
+            'town.min' => 'Town/City must be at least 2 characters.',
+            'postcode.required' => 'Postcode is required.',
+            'postcode.regex' => 'Please enter a valid UK postcode format.',
+            'mobile_number.required' => 'Mobile number is required for locums.',
+            'mobile_number.regex' => 'Please enter a valid UK mobile number.',
+            'telephone.required' => 'Telephone number is required for employers.',
+            'telephone.regex' => 'Please enter a valid UK telephone number.',
+            'store_name.required' => 'Store name is required for employers.',
+            'store_name.min' => 'Store name must be at least 5 characters.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Check if username already exists
+        $already_check = User::where('login', $personal_info['username'])->first();
         
         if ($already_check) {
             return response()->json([
+                'success' => false,
                 'message' => 'The username already exists.'
+            ], 400);
+        }
+
+        // Check if email already exists
+        $email_check = User::where('email', $personal_info['email'])->first();
+        
+        if ($email_check) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The email address is already registered.'
             ], 400);
         }
 

@@ -84,15 +84,22 @@ class RegisterController extends Controller
     public function register(Request $request)
     {
         $recaptcha = $request->input("g-recaptcha-response", "");
-        /*  $url = "https://www.google.com/recaptcha/api/siteverify?secret=" . config('app.google_recaptcha_secret_key') . '&response=' . $recaptcha;
+        
+        // Validate reCAPTCHA
+        if (empty($recaptcha)) {
+            return back()->with("error", "Please complete the CAPTCHA verification.");
+        }
+        
+        $url = "https://www.google.com/recaptcha/api/siteverify?secret=" . config('app.google_recaptcha_secret_key') . '&response=' . $recaptcha;
         try {
             $response = file_get_contents($url);
             $response = json_decode($response);
             if ($response->success == false) {
-                return back()->with("error", "Captcha Validation Required!");
+                return back()->with("error", "CAPTCHA validation failed. Please try again.");
             }
-        } catch (Throwable) {
-        } */
+        } catch (Throwable $e) {
+            return back()->with("error", "CAPTCHA validation error. Please try again.");
+        }
 
         $role_id = $request->input('role');
 
@@ -397,15 +404,65 @@ class RegisterController extends Controller
      */
     protected function validator(array $data)
     {
-        return Validator::make($data, [
-            'fname' => ['required', 'string', 'max:255'],
+        $rules = [
+            'fname' => ['required', 'string', 'min:2', 'max:255'],
+            'lname' => ['required', 'string', 'min:2', 'max:255'],
             'role' => ['required', 'integer'],
-            'lname' => ['required', 'string', 'max:255'],
-            'telephone' => ['required_if:role,3', 'nullable', 'string', 'min:11', 'max:255'],
-            'mobile' => ['required_if:role,2', 'nullable', 'string', 'min:11', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'login' => ['required', 'string', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'login' => ['required', 'string', 'min:6', 'max:20', 'regex:/^[a-zA-Z0-9_-]+$/', 'unique:users'],
+            'password' => [
+                'required', 
+                'string', 
+                'min:8', 
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
+            ],
+            'address' => ['required', 'string', 'min:10', 'max:255'],
+            'city' => ['required', 'string', 'min:2', 'max:100'],
+            'zip' => ['required', 'string', 'regex:/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i'],
+        ];
+
+        // Role-specific validations
+        if (isset($data['role'])) {
+            if ($data['role'] == 2) { // Locum
+                $rules['mobile'] = ['required', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+                $rules['telephone'] = ['nullable', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+            } elseif ($data['role'] == 3) { // Employer
+                $rules['telephone'] = ['required', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+                $rules['mobile'] = ['nullable', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'];
+                $rules['store'] = ['required', 'string', 'min:5', 'max:255'];
+            }
+        }
+
+        return Validator::make($data, $rules, [
+            'fname.required' => 'First name is required.',
+            'fname.min' => 'First name must be at least 2 characters.',
+            'lname.required' => 'Last name is required.',
+            'lname.min' => 'Last name must be at least 2 characters.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email address is already registered.',
+            'login.required' => 'Username is required.',
+            'login.min' => 'Username must be at least 6 characters.',
+            'login.max' => 'Username must not exceed 20 characters.',
+            'login.regex' => 'Username can only contain letters, numbers, hyphens, and underscores.',
+            'login.unique' => 'This username is already taken.',
+            'password.required' => 'Password is required.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+            'address.required' => 'Address is required.',
+            'address.min' => 'Address must be at least 10 characters.',
+            'city.required' => 'Town/City is required.',
+            'city.min' => 'Town/City must be at least 2 characters.',
+            'zip.required' => 'Postcode is required.',
+            'zip.regex' => 'Please enter a valid UK postcode format.',
+            'mobile.required' => 'Mobile number is required for locums.',
+            'mobile.regex' => 'Please enter a valid UK mobile number.',
+            'telephone.required' => 'Telephone number is required for employers.',
+            'telephone.regex' => 'Please enter a valid UK telephone number.',
+            'store.required' => 'Store name is required for employers.',
+            'store.min' => 'Store name must be at least 5 characters.',
         ]);
     }
 

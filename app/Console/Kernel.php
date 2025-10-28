@@ -4,6 +4,7 @@ namespace App\Console;
 
 use App\Jobs\CronApproveFeedback as JobsCronApproveFeedback;
 use App\Jobs\CronCloseJob as JobsCronCloseJob;
+use App\Jobs\CronCpdReminder as JobsCronCpdReminder;
 use App\Jobs\CronFeedback as JobsCronFeedback;
 use App\Jobs\CronJobReminder as JobsCronJobReminder;
 use App\Jobs\CronJobSummary as JobsCronJobSummary;
@@ -43,6 +44,7 @@ class Kernel extends ConsoleKernel
         $schedule->job(new JobsCronOnDayExpense)->name("CronOnDayExpense")->dailyAt("14:00")->timezone("Europe/London");
         $schedule->job(new JobsCronJobTimeline)->name("CronJobTimeline")->hourly()->timezone("Europe/London");
         $schedule->job(new JobsCronResetFreeze)->name("CronResetFreeze")->everyMinute()->timezone("Europe/London");
+        $schedule->job(new JobsCronCpdReminder)->name("CronCpdReminder")->dailyAt("10:00")->timezone("Europe/London");
         
         $schedule->command('app:job-time-line-update')->everyMinute();
         $schedule->command('app:previous-day-send-notifications')->everyMinute();

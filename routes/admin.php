@@ -144,4 +144,12 @@ Route::group(['middleware' => ['auth', 'check.role'], "prefix" => "admin"], func
 
     // Route::get('/users', 'AdminController@users')->name('admin.users');
     Route::get('category/toggleStatus/{id}', [CategoryController::class, 'toggleStatus'])->name('admin.category.toggleStatus');
+    
+    // Complaint Management Routes
+    Route::get('complaints', [\App\Http\Controllers\ComplaintController::class, 'index'])->name('admin.complaints.index');
+    Route::get('complaints/{complaint}', [\App\Http\Controllers\ComplaintController::class, 'show'])->name('admin.complaints.show');
+    Route::put('complaints/{complaint}', [\App\Http\Controllers\ComplaintController::class, 'update'])->name('admin.complaints.update');
+    Route::post('complaints/{complaint}/assign', [\App\Http\Controllers\ComplaintController::class, 'assign'])->name('admin.complaints.assign');
+    Route::post('complaints/{complaint}/resolve', [\App\Http\Controllers\ComplaintController::class, 'resolve'])->name('admin.complaints.resolve');
+    Route::post('complaints/{complaint}/close', [\App\Http\Controllers\ComplaintController::class, 'close'])->name('admin.complaints.close');
 });

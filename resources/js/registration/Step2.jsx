@@ -13,106 +13,154 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
         if (window.grecaptcha) {
             window.grecaptcha.reset();
         }
+        
+        // Add fallback for browsers that might have issues with reCAPTCHA
+        const checkRecaptchaSupport = () => {
+            if (!window.grecaptcha) {
+                console.warn('reCAPTCHA not loaded, checking browser compatibility');
+                // Add a small delay to allow reCAPTCHA to load
+                setTimeout(() => {
+                    if (!window.grecaptcha) {
+                        setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA is not supported in this browser. Please try a different browser or contact support." });
+                    }
+                }, 3000);
+            }
+        };
+        
+        checkRecaptchaSupport();
     }, []);
 
     const validateFields = () => {
-        if (
-            user.firstname &&
-            user.firstname.length >= 2 &&
-            user.lastname &&
-            user.lastname.length >= 2 &&
-            user.email &&
-            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(user.email) &&
-            user.is_email_valid &&
-            !errors.email &&
-            user.username &&
-            user.username.length >= 6 &&
-            user.username.length <= 20 &&
-            user.is_username_valid &&
-            !errors.username &&
-            user.password &&
-            user.password_confirmation &&
-            user.password.length >= 6 &&
-            user.password == user.password_confirmation &&
-            (user.role == 3 ? user.store && user.store.length >= 5 : true) &&
-            user.address &&
-            user.address.length >= 10 &&
-            user.city &&
-            user.city.length >= 2 &&
-            user.zip &&
-            user.zip.length >= 5 &&
-            user.zip.length <= 7 &&
-            (user.role == 3 ? user.telephone && user.telephone.length == 11 : true) &&
-            (user.role == 2 ? user.mobile && user.mobile.length == 11 : true)
-            //&& user.g_recaptcha_response
-        ) {
-            setErrors({});
-            setStep(3);
-            return;
+        let isValid = true;
+        let newErrors = {};
+
+        // First name validation
+        if (!user.firstname || user.firstname.length < 2) {
+            newErrors.firstname = "First name must be at least 2 characters.";
+            isValid = false;
         }
-        let newErrors = { ...errors };
-        if (!user.firstname || user.firstname?.length < 2) {
-            newErrors.firstname = "Please enter firstname of min 2 characters";
+
+        // Last name validation
+        if (!user.lastname || user.lastname.length < 2) {
+            newErrors.lastname = "Last name must be at least 2 characters.";
+            isValid = false;
         }
-        if (!user.lastname || user.lastname?.length < 2) {
-            newErrors.lastname = "Please enter lastname of min 2 characters";
-        }
+
+        // Email validation
         if (!user.email) {
-            newErrors.email = "Please enter your email.";
-        } else if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(user.email) == false) {
-            newErrors.email = "You have entered an invalid email address!";
+            newErrors.email = "Email address is required.";
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+            newErrors.email = "Please enter a valid email address.";
+            isValid = false;
+        } else if (!user.is_email_valid) {
+            newErrors.email = "This email address is already registered.";
+            isValid = false;
         }
-        if (!user.is_email_valid) {
-            newErrors.email = "Email is already taken. Please choose some other email first!";
-        }
+
+        // Username validation
         if (!user.username) {
-            newErrors.username = "Please enter your username.";
+            newErrors.username = "Username is required.";
+            isValid = false;
         } else if (user.username.length < 6 || user.username.length > 20) {
-            newErrors.username = "Enter a username of 6-20 characters long.";
+            newErrors.username = "Username must be 6-20 characters long.";
+            isValid = false;
+        } else if (!/^[a-zA-Z0-9_-]+$/.test(user.username)) {
+            newErrors.username = "Username can only contain letters, numbers, hyphens, and underscores.";
+            isValid = false;
+        } else if (!user.is_username_valid) {
+            newErrors.username = "This username is already taken.";
+            isValid = false;
         }
-        if (!user.is_username_valid) {
-            newErrors.username = "Username is already taken. Please choose some other username first!";
+
+        // Password validation
+        if (!user.password) {
+            newErrors.password = "Password is required.";
+            isValid = false;
+        } else if (user.password.length < 8) {
+            newErrors.password = "Password must be at least 8 characters.";
+            isValid = false;
+        } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(user.password)) {
+            newErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
+            isValid = false;
         }
-        if (!user.password || user.password?.length < 6) {
-            newErrors.password = "Please enter password of min 6 characters";
-        }
+
+        // Password confirmation validation
         if (!user.password_confirmation) {
-            newErrors.password_confirmation = "Please enter your password confirmation.";
-        } else if (user.password_confirmation != user.password) {
-            newErrors.password_confirmation = "Password does not match.";
+            newErrors.password_confirmation = "Please confirm your password.";
+            isValid = false;
+        } else if (user.password !== user.password_confirmation) {
+            newErrors.password_confirmation = "Password confirmation does not match.";
+            isValid = false;
         }
+
+        // Store name validation (for employers)
         if (user.role == 3 && (!user.store || user.store.length < 5)) {
-            newErrors.store = "Please enter store name of min 5 characters";
+            newErrors.store = "Store name must be at least 5 characters.";
+            isValid = false;
         }
-        if (!user.address || user.address?.length < 10) {
-            newErrors.address = "Please enter address of min 10 characters";
+
+        // Address validation
+        if (!user.address || user.address.length < 10) {
+            newErrors.address = "Address must be at least 10 characters.";
+            isValid = false;
         }
-        if (!user.city || user.city?.length < 2) {
-            newErrors.city = "Please enter city of min 2 characters";
+
+        // City validation
+        if (!user.city || user.city.length < 2) {
+            newErrors.city = "Town/City must be at least 2 characters.";
+            isValid = false;
         }
+
+        // Postcode validation (UK format)
         if (!user.zip) {
-            newErrors.zip = "Please enter your postcode.";
-        } else if (user.zip?.length < 5 || user.zip?.length > 7) {
-            newErrors.zip = "Please enter valid postcode of length 5-7 characters";
+            newErrors.zip = "Postcode is required.";
+            isValid = false;
+        } else if (!/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i.test(user.zip)) {
+            newErrors.zip = "Please enter a valid UK postcode format.";
+            isValid = false;
         }
-        if (user.role == 3 && (!user.telephone || user.telephone.length != 11)) {
-            newErrors.telephone = "Please enter telephone of 11 digits";
+
+        // Telephone validation (for employers)
+        if (user.role == 3) {
+            if (!user.telephone) {
+                newErrors.telephone = "Telephone number is required for employers.";
+                isValid = false;
+            } else if (!/^(\+44|0)[0-9]{10}$/.test(user.telephone)) {
+                newErrors.telephone = "Please enter a valid UK telephone number.";
+                isValid = false;
+            }
         }
-        if (user.role == 2 && (!user.mobile || user.mobile?.length != 11)) {
-            newErrors.mobile = "Please enter mobile number of 11 digits";
+
+        // Mobile validation (for locums)
+        if (user.role == 2) {
+            if (!user.mobile) {
+                newErrors.mobile = "Mobile number is required for locums.";
+                isValid = false;
+            } else if (!/^(\+44|0)[0-9]{10}$/.test(user.mobile)) {
+                newErrors.mobile = "Please enter a valid UK mobile number.";
+                isValid = false;
+            }
         }
+
+        // CAPTCHA validation
         if (!user.g_recaptcha_response) {
-            newErrors.g_recaptcha_response = "Please fill captcha";
+            newErrors.g_recaptcha_response = "Please complete the CAPTCHA verification.";
+            isValid = false;
         }
 
         setErrors(newErrors);
+
+        if (isValid) {
+            setStep(3);
+        }
     };
 
     const handleEmailValidation = (email) => {
         const newUser = { ...user, email: email };
         setUser(newUser);
 
-        if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             if (email_controller.current) {
                 email_controller.current.abort();
             }
@@ -133,7 +181,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                 )
                 .then((res) => {
                     if (res.data.email_exists == true) {
-                        setErrors({ ...errors, email: "Email already exists." });
+                        setErrors({ ...errors, email: "This email address is already registered." });
                         setUser({ ...newUser, is_email_valid: false });
                     } else {
                         setErrors({ ...errors, email: "" });
@@ -142,23 +190,33 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                 })
                 .catch((err) => { });
         } else if (email.trim() === "") {
-            setErrors({ ...errors, email: "Please enter your email." });
+            setErrors({ ...errors, email: "Email address is required." });
         } else {
-            setErrors({ ...errors, email: "You have entered an invalid email address!" });
+            setErrors({ ...errors, email: "Please enter a valid email address." });
         }
+    };
+
+    const onGoogleRecaptchaChange = (value) => {
+        setUser({ ...user, g_recaptcha_response: value });
     };
 
     const handleUsernameValidation = (username) => {
         const newUser = { ...user, username: username };
         setUser(newUser);
+        
         if (username.length < 6) {
-            setErrors({ ...errors, username: "Please enter username with a minimum 6 of characters." });
+            setErrors({ ...errors, username: "Username must be at least 6 characters." });
             return;
         }
         if (username.length > 20) {
-            setErrors({ ...errors, username: "Please enter username with a maximum of 20 characters." });
+            setErrors({ ...errors, username: "Username must not exceed 20 characters." });
             return;
         }
+        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+            setErrors({ ...errors, username: "Username can only contain letters, numbers, hyphens, and underscores." });
+            return;
+        }
+        
         if (login_controller.current) {
             login_controller.current.abort();
         }
@@ -179,7 +237,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             )
             .then((res) => {
                 if (res.data.login_exists == true) {
-                    setErrors({ ...errors, username: "Username already exists." });
+                    setErrors({ ...errors, username: "This username is already taken." });
                     setUser({ ...newUser, is_username_valid: false });
                 } else {
                     setErrors({ ...errors, username: "" });
@@ -189,8 +247,31 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             .catch((err) => { });
     };
 
-    const onGoogleRecaptchaChange = (value) => {
-        setUser({ ...user, g_recaptcha_response: value });
+    const getFieldClassName = (fieldName) => {
+        const hasError = errors[fieldName];
+        const hasValue = user[fieldName] && user[fieldName].length > 0;
+        
+        if (hasError) return 'form-control input-text width-100 error';
+        if (hasValue && !hasError) return 'form-control input-text width-100 success';
+        return 'form-control input-text width-100';
+    };
+
+    const renderValidationSummary = () => {
+        const errorCount = Object.keys(errors).filter(key => errors[key]).length;
+        
+        if (errorCount === 0) return null;
+        
+        return (
+            <div className="validation-summary">
+                <h6>Please fix the following {errorCount} error{errorCount > 1 ? 's' : ''}:</h6>
+                <ul>
+                    {Object.entries(errors).map(([field, message]) => {
+                        if (!message) return null;
+                        return <li key={field}>{message}</li>;
+                    })}
+                </ul>
+            </div>
+        );
     };
 
     const handleConfirmPasswordValidation = (password_confirmation) => {
@@ -209,21 +290,25 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     <span>Personal information</span>
                 </h2>
             </div>
+            
+            {renderValidationSummary()}
+            
             <div className="col-md-12 pad0 form-group">
                 <div className="col-md-6 col-sm-6">
                     <label htmlFor="email">
                         First name<i className="fa fa-asterisk required-stars required-stars" aria-hidden="true"></i>
                     </label>
                     <input
-                        className="form-control input-text width-100"
+                        className={getFieldClassName('firstname')}
                         type="text"
                         name="fname"
                         id="fname"
                         minLength={2}
-                        maxLength={20}
+                        maxLength={255}
                         autoComplete="off"
                         onChange={(e) => setUser({ ...user, firstname: e.target.value.trim() })}
                         value={user.firstname ?? ""}
+                        placeholder="Enter your first name"
                     />
                     {errors && errors.firstname && (
                         <div className="css_error" id="fname_error">
@@ -236,15 +321,16 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         Last name<i className="fa fa-asterisk required-stars required-stars" aria-hidden="true"></i>
                     </label>
                     <input
-                        className="form-control input-text width-100"
+                        className={getFieldClassName('lastname')}
                         type="text"
                         name="lname"
                         id="lname"
                         minLength={2}
-                        maxLength={20}
+                        maxLength={255}
                         autoComplete="off"
                         onChange={(e) => setUser({ ...user, lastname: e.target.value.trim() })}
                         value={user.lastname ?? ""}
+                        placeholder="Enter your last name"
                     />
                     {errors && errors.lastname && (
                         <div className="css_error" id="lname_error">
@@ -258,7 +344,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     <label htmlFor="email">
                         Your email<i className="fa fa-asterisk required-stars required-stars" aria-hidden="true"></i>
                     </label>
-                    <input className="form-control input-text width-100" type="email" onChange={(e) => handleEmailValidation(e.target.value.trim())} name="email" id="email" autoComplete="off" value={user.email ?? ""} />
+                    <input className={getFieldClassName('email')} type="email" onChange={(e) => handleEmailValidation(e.target.value.trim())} name="email" id="email" autoComplete="off" value={user.email ?? ""} placeholder="Enter your email address" />
                     {errors && errors.email && (
                         <div className="css_error" id="email_error">
                             {errors.email}
@@ -270,7 +356,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         Username<i className="fa fa-asterisk required-stars required-stars" aria-hidden="true"></i>
                     </label>
                     <input
-                        className="form-control input-text width-100"
+                        className={getFieldClassName('username')}
                         type="text"
                         onChange={(e) => handleUsernameValidation(e.target.value.trim())}
                         name="login"
@@ -279,12 +365,16 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         minLength={6}
                         maxLength={20}
                         value={user.username ?? ""}
+                        placeholder="Enter username (6-20 characters, letters, numbers, hyphens, underscores only)"
                     />
                     {errors && errors.username && (
                         <div className="css_error" id="login_error">
                             {errors.username}
                         </div>
                     )}
+                    <div className="field-help-text">
+                        Username must be 6-20 characters long and can only contain letters, numbers, hyphens (-), and underscores (_).
+                    </div>
                 </div>
             </div>
             <div className="col-md-12 pad0 form-group">
@@ -292,7 +382,67 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     <label htmlFor="login">
                         Password<i className="fa fa-asterisk required-stars required-stars" aria-hidden="true"></i>
                     </label>
-                    <input className="form-control input-text width-100" type="password" name="password" id="upassword" onChange={(e) => setUser({ ...user, password: e.target.value.trim() })} value={user.password ?? ""} />
+                    <div style={{ position: 'relative' }}>
+                        <input 
+                            className="form-control input-text width-100" 
+                            type={user.showPassword ? "text" : "password"} 
+                            name="password" 
+                            id="upassword" 
+                            onChange={(e) => setUser({ ...user, password: e.target.value.trim() })} 
+                            value={user.password ?? ""} 
+                        />
+                        <button
+                            type="button"
+                            style={{
+                                position: 'absolute',
+                                right: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                color: '#666'
+                            }}
+                            onClick={() => setUser({ ...user, showPassword: !user.showPassword })}
+                        >
+                            <i className={`fa ${user.showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                    </div>
+                    {user.password && (
+                        <div style={{ marginTop: '5px', fontSize: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                                <span style={{ color: user.password.length >= 8 ? '#28a745' : '#dc3545', marginRight: '5px' }}>
+                                    <i className={`fa ${user.password.length >= 8 ? 'fa-check' : 'fa-times'}`}></i>
+                                </span>
+                                At least 8 characters
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                                <span style={{ color: /[A-Z]/.test(user.password) ? '#28a745' : '#dc3545', marginRight: '5px' }}>
+                                    <i className={`fa ${/[A-Z]/.test(user.password) ? 'fa-check' : 'fa-times'}`}></i>
+                                </span>
+                                One uppercase letter
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                                <span style={{ color: /[a-z]/.test(user.password) ? '#28a745' : '#dc3545', marginRight: '5px' }}>
+                                    <i className={`fa ${/[a-z]/.test(user.password) ? 'fa-check' : 'fa-times'}`}></i>
+                                </span>
+                                One lowercase letter
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                                <span style={{ color: /\d/.test(user.password) ? '#28a745' : '#dc3545', marginRight: '5px' }}>
+                                    <i className={`fa ${/\d/.test(user.password) ? 'fa-check' : 'fa-times'}`}></i>
+                                </span>
+                                One number
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                                <span style={{ color: /[@$!%*?&]/.test(user.password) ? '#28a745' : '#dc3545', marginRight: '5px' }}>
+                                    <i className={`fa ${/[@$!%*?&]/.test(user.password) ? 'fa-check' : 'fa-times'}`}></i>
+                                </span>
+                                One special character (@$!%*?&)
+                            </div>
+                        </div>
+                    )}
                     {errors && errors.password && (
                         <div className="css_error" id="upassword_error">
                             {errors.password}
@@ -303,14 +453,33 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     <label htmlFor="login">
                         Confirm password<i className="fa fa-asterisk required-stars required-stars" aria-hidden="true"></i>
                     </label>
-                    <input
-                        className="form-control input-text width-100"
-                        type="password"
-                        name="password_confirmation"
-                        id="cpassword"
-                        onChange={(e) => handleConfirmPasswordValidation(e.target.value.trim())}
-                        value={user.password_confirmation ?? ""}
-                    />
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            className="form-control input-text width-100"
+                            type={user.showConfirmPassword ? "text" : "password"}
+                            name="password_confirmation"
+                            id="cpassword"
+                            onChange={(e) => handleConfirmPasswordValidation(e.target.value.trim())}
+                            value={user.password_confirmation ?? ""}
+                        />
+                        <button
+                            type="button"
+                            style={{
+                                position: 'absolute',
+                                right: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                color: '#666'
+                            }}
+                            onClick={() => setUser({ ...user, showConfirmPassword: !user.showConfirmPassword })}
+                        >
+                            <i className={`fa ${user.showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                    </div>
                     {errors && errors.password_confirmation && (
                         <div className="css_error" id="cpassword_error">
                             {errors.password_confirmation}
@@ -339,7 +508,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                             autoComplete="off"
                             onChange={(e) => setUser({ ...user, company: e.target.value })}
                             value={user.company ?? ""}
-                            maxLength={20}
+                            placeholder="Enter company name (optional)"
                         />
                     </div>
                 ) : (
@@ -354,7 +523,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                                 <i className="fa fa-question-circle" aria-hidden="true"></i>
                             </p>
                         </label>
-                        <input className="form-control input-text width-100" type="text" name="store" id="store" autoComplete="off" onChange={(e) => setUser({ ...user, store: e.target.value })} value={user.store ?? ""} maxLength={20} />
+                        <input className="form-control input-text width-100" type="text" name="store" id="store" autoComplete="off" onChange={(e) => setUser({ ...user, store: e.target.value })} value={user.store ?? ""} placeholder="Enter store name" />
                         {errors && errors.store && (
                             <div className="css_error" id="store_error">
                                 {errors.store}
@@ -375,8 +544,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         autoComplete="off"
                         onChange={(e) => setUser({ ...user, address: e.target.value })}
                         value={user.address ?? ""}
-                        maxLength={200}
-                        minLength={10}
+                        placeholder="Enter your full address"
                     />
                     {errors && errors.address && (
                         <div className="css_error" id="address_error">
@@ -416,16 +584,19 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         name="zip"
                         id="zip"
                         autoComplete="off"
-                        onChange={(e) => setUser({ ...user, zip: e.target.value })}
+                        onChange={(e) => setUser({ ...user, zip: e.target.value.toUpperCase() })}
                         value={user.zip ?? ""}
-                        minLength={5}
-                        maxLength={7}
+                        placeholder="Enter UK postcode (e.g., SW1A 1AA)"
+                        style={{ textTransform: 'uppercase' }}
                     />
                     {errors && errors.zip && (
                         <div className="css_error" id="zip_error">
                             {errors.zip}
                         </div>
                     )}
+                    <div className="field-help-text">
+                        Enter a valid UK postcode format (e.g., SW1A 1AA, M1 1AA, B33 8TH).
+                    </div>
                 </div>
             </div>
             <div className="col-md-12 pad0 form-group">
@@ -446,10 +617,9 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         name="telephone"
                         id="telephone"
                         autoComplete="off"
-                        minLength={11}
-                        maxLength={11}
                         onChange={(e) => setUser({ ...user, telephone: e.target.value.trim() })}
                         value={user.telephone ?? ""}
+                        placeholder={user.role == 2 ? "Enter home telephone (optional)" : "Enter store telephone (e.g., 020 1234 5678)"}
                     />
                     {errors && errors.telephone && (
                         <div className="css_error" id="telephone_error">
@@ -473,10 +643,9 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         step={1}
                         name="mobile"
                         id="mobile"
-                        minLength={11}
-                        maxLength={11}
                         onChange={(e) => setUser({ ...user, mobile: e.target.value.trim() })}
                         value={user.mobile ?? ""}
+                        placeholder={user.role == 2 ? "Enter mobile number (e.g., 07123 456789)" : "Enter mobile number (optional)"}
                     />
                     {errors && errors.mobile && (
                         <div className="css_error" id="mobile_error">
@@ -486,7 +655,23 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                 </div>
             </div>
             <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-                <ReCAPTCHA sitekey={GOOGLE_RECAPTCHA_SITE_KEY} onChange={onGoogleRecaptchaChange} />
+                <div className="recaptcha-container">
+                    <ReCAPTCHA 
+                        sitekey={GOOGLE_RECAPTCHA_SITE_KEY} 
+                        onChange={onGoogleRecaptchaChange}
+                        size="compact"
+                        theme="light"
+                        onErrored={() => {
+                            console.error('reCAPTCHA error occurred');
+                            setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA failed to load. Please refresh the page and try again." });
+                        }}
+                        onExpired={() => {
+                            console.warn('reCAPTCHA expired');
+                            setUser({ ...user, g_recaptcha_response: null });
+                            setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA expired. Please complete it again." });
+                        }}
+                    />
+                </div>
                 {errors && errors.g_recaptcha_response && (
                     <span className="css_error" id="g_recaptcha_response_error">
                         {errors.g_recaptcha_response}

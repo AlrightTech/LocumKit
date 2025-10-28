@@ -67,7 +67,8 @@ class JobManagementController extends Controller
 
         $job_timeline_data = "";
         foreach ($job->job_post_timelines as $timeline) {
-            $job_timeline_data .= '<p><strong>Date:</strong> ' . get_date_with_default_format($timeline->job_date_new) . ' <strong>Rate:</strong> ' . set_amount_format($timeline->job_rate_new) . '</p>';
+            $timeDisplay = $timeline->job_timeline_time ? $timeline->job_timeline_time : '09:00';
+            $job_timeline_data .= '<p><strong>Date:</strong> ' . get_date_with_default_format($timeline->job_date_new) . ' <strong>Time:</strong> ' . $timeDisplay . ' <strong>Rate:</strong> ' . set_amount_format($timeline->job_rate_new) . '</p>';
         }
         if ($job_timeline_data === "") {
             $job_timeline_data = "N/A";
@@ -397,19 +398,30 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
                     "created_at" => now(),
                     "updated_at" => now(),
                 ];
+                
+                // Generate acceptance token for private user
+                $acceptance_token = \Str::random(64);
+                
                 $job_invited_users_insert_data[] = [
                     "job_post_id" => $job->id,
                     "invited_user_id" => $freelancer->id,
                     "invited_user_type" => JobInvitedUser::USER_TYPE_PRIVATE,
+                    "acceptance_token" => $acceptance_token,
+                    "token_expires_at" => now()->addDays(7),
                     "created_at" => now(),
                     "updated_at" => now(),
                 ];
+                
                 $encrypted_job_id = encrypt($job->id);
                 $encrypted_freelancer_id = encrypt($freelancer->id);
                 $encrypted_freelancer_type = encrypt("private");
                 $accept_href_link = url("/accept-job?job_id={$encrypted_job_id}&freelancer_id={$encrypted_freelancer_id}&freelancer_type={$encrypted_freelancer_type}");
-
+                
+                // Add email-based acceptance link for private users
+                $email_accept_link = url("/job/accept-private/{$acceptance_token}");
+                
                 $link = '<a style="outline: none !important;float: left;font-size: 18px;background-color: #2dc9ff;padding: 7px 30px;color: #fff;text-transform: uppercase;text-decoration: none;border-radius: 25px;margin-bottom: 0px;" href="' . $accept_href_link . '">Accept</a>';
+                $email_link = '<a style="outline: none !important;float: left;font-size: 18px;background-color: #28a745;padding: 7px 30px;color: #fff;text-transform: uppercase;text-decoration: none;border-radius: 25px;margin-bottom: 0px;margin-left: 10px;" href="' . $email_accept_link . '">Accept via Email</a>';
 
                 $private_freelancer_email_section2 = $email_data_employer;
                 // <p>To continue receiving job notifications like these please <a href="' . url('/private-invitation') . '" target="_blank">click here</a></p>
@@ -424,7 +436,7 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
                         <h3>Job Information</h3>
                         ' . $freelancer_email_section1 . '
                         <br/>
-                        <p style="float:left;width:100%;">' . $link . '<p>
+                        <p style="float:left;width:100%;">' . $link . $email_link . '<p>
 
                         <br/>
                         <table style="border-collapse: collapse;  border: 1px solid black;  text-align:left;  padding:5px;" width="100%">
@@ -1212,7 +1224,7 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         switch ($job->job_status) {
             case JobPost::JOB_STATUS_OPEN_WAITING:
                 if ($user_job_action->freeze_notification_count < 1) {
-                    if (today()->lessThan($job->job_date)) {
+                    if ($job->job_date->diffInHours(now()) > 48) {
                         JobAction::where("job_post_id", $job->id)->where("id", "!=", $user_job_action->id)->update([
                             "action" => JobAction::ACTION_WAITING_FOR_UNFREEZE,
                             "updated_at" => now()
@@ -1226,7 +1238,7 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
                         $job->save();
                         $success = "Job will be frozen for 15 minutes only";
                     } else {
-                        $error = "Job is no longer available. You cannot freeze the job.";
+                        $error = "Job is within 48 hours of start time. You cannot freeze the job.";
                     }
                 } else {
                     $error = "You have already freeze this job, you cannot freeze it again.";
@@ -1270,5 +1282,155 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         $employer_answers = $employer->user_answers;
 
     return view('shared.freeze-job', compact('success', 'error', 'job', 'store_contact_details', 'employer_answers', 'freelancer_type', 'freelancer'));
+    }
+
+    public function markJobAsCompleted(Request $request, $job_id)
+    {
+        $job = JobPost::findOrFail($job_id);
+        $user = Auth::user();
+        
+        // Check if user has permission to mark this job as completed
+        $canMarkCompleted = false;
+        
+        if ($user->user_acl_role_id == User::ROLE_EMPLOYER && $job->employer_id == $user->id) {
+            $canMarkCompleted = true;
+        } elseif ($user->user_acl_role_id == User::ROLE_LOCUM) {
+            // Check if freelancer is accepted for this job
+            $jobAction = JobAction::where('job_post_id', $job_id)
+                ->where('freelancer_id', $user->id)
+                ->where('action', JobAction::ACTION_ACCEPT)
+                ->first();
+            if ($jobAction) {
+                $canMarkCompleted = true;
+            }
+        }
+        
+        if (!$canMarkCompleted) {
+            return back()->with('error', 'You do not have permission to mark this job as completed.');
+        }
+        
+        // Check if job is in accepted status
+        if ($job->job_status != JobPost::JOB_STATUS_ACCEPTED) {
+            return back()->with('error', 'Only accepted jobs can be marked as completed.');
+        }
+        
+        // Update job status
+        $job->job_status = JobPost::JOB_STATUS_DONE_COMPLETED;
+        $job->save();
+        
+        // Send feedback request emails to both parties
+        $this->sendFeedbackRequestEmails($job);
+        
+        // Send notification to admin
+        $this->sendJobCompletedNotification($job, $user);
+        
+        return back()->with('success', 'Job has been marked as completed successfully.');
+    }
+    
+    private function sendFeedbackRequestEmails($job)
+    {
+        // Get employer and freelancer
+        $employer = User::find($job->employer_id);
+        $freelancerAction = JobAction::where('job_post_id', $job->id)
+            ->where('action', JobAction::ACTION_ACCEPT)
+            ->first();
+        
+        if ($freelancerAction) {
+            $freelancer = User::find($freelancerAction->freelancer_id);
+            
+            // Send feedback request to employer
+            if ($employer) {
+                Mail::to($employer->email)->send(new \App\Mail\FeedbackRequestMail($job, $freelancer, 'employer'));
+            }
+            
+            // Send feedback request to freelancer
+            if ($freelancer) {
+                Mail::to($freelancer->email)->send(new \App\Mail\FeedbackRequestMail($job, $employer, 'freelancer'));
+            }
+        }
+    }
+    
+    private function sendJobCompletedNotification($job, $user)
+    {
+        // Get admin users
+        $admins = User::where('user_acl_role_id', User::ROLE_ADMIN)->get();
+        
+        foreach ($admins as $admin) {
+            // Send notification to admin
+            $admin->notify(new \App\Notifications\JobCompletedNotification($job, $user));
+        }
+    }
+
+    public function acceptJobViaEmail(Request $request, $token)
+    {
+        // Find the job invitation by token
+        $jobInvitation = JobInvitedUser::where('acceptance_token', $token)->first();
+        
+        if (!$jobInvitation) {
+            return view('shared.job-acceptance-error', [
+                'error' => 'Invalid or expired job invitation link.'
+            ]);
+        }
+
+        // Check if token is still valid
+        if (!$jobInvitation->isTokenValid($token)) {
+            return view('shared.job-acceptance-error', [
+                'error' => 'This job invitation link has expired.'
+            ]);
+        }
+
+        // Check if job is still available
+        $job = $jobInvitation->job;
+        if (!$job || $job->job_status != JobPost::JOB_STATUS_OPEN_WAITING) {
+            return view('shared.job-acceptance-error', [
+                'error' => 'This job is no longer available.'
+            ]);
+        }
+
+        // Check if job date hasn't passed
+        if ($job->job_date < now()->toDateString()) {
+            return view('shared.job-acceptance-error', [
+                'error' => 'This job date has already passed.'
+            ]);
+        }
+
+        // Accept the job
+        try {
+            // Create job action
+            JobAction::create([
+                'job_post_id' => $job->id,
+                'freelancer_id' => $jobInvitation->invited_user_id,
+                'action' => JobAction::ACTION_ACCEPT,
+                'action_date' => now(),
+            ]);
+
+            // Update job status
+            $job->job_status = JobPost::JOB_STATUS_ACCEPTED;
+            $job->save();
+
+            // Clear the acceptance token
+            $jobInvitation->clearAcceptanceToken();
+
+            // Send notification to employer
+            $this->sendJobAcceptedNotification($job, $jobInvitation);
+
+            return view('shared.job-acceptance-success', [
+                'job' => $job,
+                'freelancer' => $jobInvitation->invited_user,
+            ]);
+
+        } catch (\Exception $e) {
+            return view('shared.job-acceptance-error', [
+                'error' => 'An error occurred while accepting the job. Please try again.'
+            ]);
+        }
+    }
+
+    private function sendJobAcceptedNotification($job, $freelancer)
+    {
+        $employer = User::find($job->employer_id);
+        if ($employer) {
+            Mail::to($employer->email)->send(new \App\Mail\JobAcceptedNotification($job, $freelancer));
+        }
     }
 }

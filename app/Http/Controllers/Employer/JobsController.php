@@ -89,6 +89,7 @@ class JobsController extends Controller
                     $del_link = "<li><a href='javascript:void(0);' style='cursor: no-drop;color: lightgray;' title='Delete Disable'><i class='fa fa-trash-o' aria-hidden='true'></i></a></li>";
                     $edit_link = "<a href='/employer/managejob/{$job->id}?duplicate_job=1' title='Duplicate Job'><i class='fa fa-files-o' aria-hidden='true'></i></a>";
                     $cancel_link = $cancel_action_link;
+                    $complete_link = "<a href='javascript:void(0);' onclick='markJobCompleted({$job->id})' title='Mark as Completed' style='color: #28a745;'><i class='fa fa-check-circle' aria-hidden='true'></i></a>";
                     break;
                 case '5':
                     $jobStatus = "<span style='color:#00A9E0;font-size: 14px;'>Completed</span>";
@@ -123,6 +124,7 @@ class JobsController extends Controller
             $job->job_status_html = $jobStatus;
             $job->job_duplicate_link = $duplicate_link;
             $job->job_cancel_link = $cancel_link;
+            $job->job_complete_link = isset($complete_link) ? $complete_link : '';
             $job->freelancerName = $freelancerName;
         }
         
@@ -168,6 +170,7 @@ class JobsController extends Controller
             "job_date_new" => ["required_if:set_timeline,1", "array"],
             "job_rate_new" => ["required_if:set_timeline,1", "array"],
             "job_timeline_hrs" => ["required_if:set_timeline,1", "array"],
+            "job_timeline_time" => ["required_if:set_timeline,1", "array"],
         ]);
 
         $job_store = $request->input("job_store");
@@ -217,6 +220,7 @@ class JobsController extends Controller
 
         if ($set_timeline && $set_timeline == 1) {
             $job_timelines = array();
+            $job_timeline_time = $request->input("job_timeline_time");
             foreach ($job_date_new as $key => $timeline_date) {
                 $date = Carbon::createFromFormat(get_default_date_format(),  $timeline_date);
                 array_push($job_timelines, [
@@ -224,6 +228,7 @@ class JobsController extends Controller
                     "job_date_new" => $date->format("Y-m-d"),
                     "job_timeline_hrs" => $job_timeline_hrs[$key],
                     "job_rate_new" => $job_rate_new[$key],
+                    "job_timeline_time" => $job_timeline_time[$key] ?? null,
                     "job_timeline_status" => 3,
                     "created_at" => now(),
                     "updated_at" => now()
@@ -253,6 +258,7 @@ class JobsController extends Controller
             "job_date_new" => ["required_if:set_timeline,1", "array"],
             "job_rate_new" => ["required_if:set_timeline,1", "array"],
             "job_timeline_hrs" => ["required_if:set_timeline,1", "array"],
+            "job_timeline_time" => ["required_if:set_timeline,1", "array"],
         ]);
         $job_store = $request->input("job_store");
         $job_title = $request->input("job_title");
@@ -295,6 +301,7 @@ class JobsController extends Controller
 
         $job_timelines = array();
         if ($set_timeline && $set_timeline == 1) {
+            $job_timeline_time = $request->input("job_timeline_time");
             foreach ($job_date_new as $key => $timeline_date) {
                 $date = Carbon::createFromFormat(get_default_date_format(),  $timeline_date);
                 array_push($job_timelines, [
@@ -302,6 +309,7 @@ class JobsController extends Controller
                     "job_date_new" => $date->format("Y-m-d"),
                     "job_timeline_hrs" => $job_timeline_hrs[$key],
                     "job_rate_new" => $job_rate_new[$key],
+                    "job_timeline_time" => $job_timeline_time[$key] ?? null,
                     "job_timeline_status" => 3,
                     "created_at" => now(),
                     "updated_at" => now()

@@ -405,6 +405,7 @@ class FreelancerController extends Controller
 
             if ($job['job_status'] == JobPost::JOB_STATUS_ACCEPTED) {
                 $job_status_html = "<span style='color:green;font-size: 14px;'>Accepted</span>";
+                $complete_link = "<a href='javascript:void(0);' onclick='markJobCompleted({$job->id})' title='Mark as Completed' style='color: #28a745;'><i class='fa fa-check-circle' aria-hidden='true'></i></a>";
             } elseif ($job['job_status'] == JobPost::JOB_STATUS_DONE_COMPLETED) {
                 $job_status_html = "<span style='color:#00A9E0;font-size: 14px;'>Completed</span>";
                 $cancel_action_link = "<a href='javascript:void(0);' style='cursor: no-drop;color: lightgray;' title='Cancel Job'><i class='fa fa-times' aria-hidden='true'></i></a>";
@@ -428,6 +429,7 @@ class FreelancerController extends Controller
             $job->job_type = $job_type;
             $job->job_view_link = $job_view_link;
             $job->job_status_html = $job_status_html;
+            $job->job_complete_link = isset($complete_link) ? $complete_link : '';
         }
 
         return view('freelancer.job-listing', compact('filterJobStatusId', 'jobs', 'job_filter_order', 'job_sort_by_filter'));
