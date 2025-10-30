@@ -147,9 +147,9 @@ if (!function_exists("get_user_database_questions")) {
                 $available_values = json_decode($row['values']);
                 foreach ($available_values as $value) {
                     if ($answer_value === $value) {
-                        $ans_method .= "<option value='{$value}' > {$range_val} {$value} {$range_type_unit} </option>";
-                    } else {
                         $ans_method .= "<option value='{$value}' selected> {$range_val} {$value} {$range_type_unit} </option>";
+                    } else {
+                        $ans_method .= "<option value='{$value}'> {$range_val} {$value} {$range_type_unit} </option>";
                     }
                 }
                 $ans_method .= "</select>";
@@ -682,12 +682,13 @@ if (!function_exists('get_mail_footer')) {
 
     function get_mail_footer()
 {
+    $appUrl = url('/');
     $footer = '<div style="padding: 0px 50px 30px; text-align: left; font-family: sans-serif;">
           <p style="margin: 5px 0px;"><b>Thank you</b></p>
           <p style="margin: 5px 0px;"><b>The Locumkit Team</b></p>
           <p style="font-size: 13px; margin: 5px 0px;"></p>
           <p style="margin: 5px 0px;">
-              <em>For any queries please contact us <a href="' . env('APP_URL') . '/contact">here</a>.</em>
+              <em>For any queries please contact us <a href="' . $appUrl . '/contact">here</a>.</em>
           </p>
           </div>
           <div class="mail-footer" style="background: #252525; color: #fff; padding: 15px 50px; margin-top: 0px; border-top: 2px solid #000;">
@@ -697,12 +698,12 @@ if (!function_exists('get_mail_footer')) {
           <ul style="display: inline-block; padding: 0; margin: 0 auto; width: 40%; text-align: right;">
               <li style="list-style: none; margin-left: 5px; margin-right: 5px; display: inherit;">
                   <a href="https://www.facebook.com/locumkit" target="_blank">
-                      <img src="' . env('APP_URL') . '/frontend/locumkit-template/new-design-assets/img/facebook-n.png" title="Facebook" alt="Facebook">
+                      <img src="' . $appUrl . '/frontend/locumkit-template/new-design-assets/img/facebook-n.png" title="Facebook" alt="Facebook">
                   </a>
               </li>
               <li style="list-style: none; margin-left: 5px; margin-right: 5px; display: inherit;">
                   <a href="https://www.linkedin.com/company/locumkit" target="_blank">
-                      <img src="' . env('APP_URL') . '/frontend/locumkit-template/new-design-assets/img/linkedin-n.png" title="LinkedIn" alt="LinkedIn">
+                      <img src="' . $appUrl . '/frontend/locumkit-template/new-design-assets/img/linkedin-n.png" title="LinkedIn" alt="LinkedIn">
                   </a>
               </li>
           </ul>
@@ -890,7 +891,7 @@ if (!function_exists('compare_job_town_with_user_selected_towns')) {
     {
         $freelancer_towns = $freelancer->user_extra_info?->site_town_ids ? json_decode($freelancer->user_extra_info?->site_town_ids, true) : null;
         $freelancer_towns = $freelancer_towns && is_array($freelancer_towns) ? $freelancer_towns : [];
-        $job_town = SiteTown::query()->where("town", "slike", "%{$job->job_region}%")->first();
+        $job_town = SiteTown::query()->where("town", "like", "%{$job->job_region}%")->first();
 
         if ($job_town && in_array($job_town->id, $freelancer_towns)) {
             return true;
@@ -899,11 +900,21 @@ if (!function_exists('compare_job_town_with_user_selected_towns')) {
     }
 }
 if (!function_exists('send_test_mail')) {
-    function send_test_mail($email = 'noumanhabib521@gmail.com')
+    function send_test_mail($email)
     {
-        $sentMessage = Mail::html('<p style="color: green;">Test is test, and test is here.</p>', function ($message) use ($email) {
-            $message->to($email)->subject('Test');
+        // Validate email before sending
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (app()->runningInConsole()) {
+                $output = new ConsoleOutput();
+                $output->writeln('Invalid email address provided');
+            }
+            return false;
+        }
+        
+        $sentMessage = Mail::html('<p style="color: green;">Test email from LocumKit system.</p>', function ($message) use ($email) {
+            $message->to($email)->subject('LocumKit Test Email');
         });
+        
         if (app()->runningInConsole()) {
             $output = new ConsoleOutput();
             if ($sentMessage) {
@@ -912,6 +923,8 @@ if (!function_exists('send_test_mail')) {
                 $output->writeln('Not able to send message');
             }
         }
+        
+        return true;
     }
 }
 
@@ -931,12 +944,18 @@ if (!function_exists('is_valid_date')) {
 if (!function_exists('checkPermission')) {
     function checkPermission(string $permisssion): bool
     {
-        return true;
-        // return true;
-       $userPermission=\App\Models\userAclPermisssion::where('permission',$permisssion)->first();
-    //    if($userPermission){
-       return auth()->user()->role->permissions()->where('permission',$permisssion)->exists();
-       //}
-
+        // Check if user is authenticated
+        if (!auth()->check()) {
+            return false;
+        }
+        
+        // Check if the permission exists
+        $userPermission = \App\Models\userAclPermisssion::where('permission', $permisssion)->first();
+        
+        if ($userPermission) {
+            return auth()->user()->role->permissions()->where('permission', $permisssion)->exists();
+        }
+        
+        return false;
     }
 }

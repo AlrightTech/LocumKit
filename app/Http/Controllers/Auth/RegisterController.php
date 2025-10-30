@@ -83,6 +83,9 @@ class RegisterController extends Controller
      */
     public function register(Request $request)
     {
+        // TEMPORARILY DISABLED - Recaptcha keys are incorrect
+        // TODO: Enable this when correct recaptcha keys are provided
+        /*
         $recaptcha = $request->input("g-recaptcha-response", "");
         
         // Validate reCAPTCHA
@@ -100,6 +103,7 @@ class RegisterController extends Controller
         } catch (Throwable $e) {
             return back()->with("error", "CAPTCHA validation error. Please try again.");
         }
+        */
 
         $role_id = $request->input('role');
 
@@ -308,10 +312,17 @@ class RegisterController extends Controller
                         "price" => $package_final,
                         "payment_status" => 1,
                     ]);
+                    
+                    // Send verification email to the user
                     try {
                         event(new Registered($user));
-                    } catch (Exception $ignore) {
+                        \Illuminate\Support\Facades\Log::info("Verification email event triggered for user: {$user->email}");
+                    } catch (Exception $e) {
+                        // Log the error instead of silently ignoring it
+                        \Illuminate\Support\Facades\Log::error("Failed to send verification email to {$user->email}: " . $e->getMessage());
+                        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
                     }
+                    
                     $this->guard()->login($user);
                 }
 
@@ -370,17 +381,29 @@ class RegisterController extends Controller
                         Mail::html($message, function (Message $message) use ($email) {
                             $message->to($email)->subject('Welcome to LocumKit');
                         });
+                        \Illuminate\Support\Facades\Log::info("Welcome email sent to employer: {$email}");
+                        
                         $admin_mail = config('app.admin_mail');
-                        Mail::html($message2, function (Message $message) use ($admin_mail) {
-                            $message->to($admin_mail)->subject('New employer registration - Needs to be verified');
-                        });
+                        if ($admin_mail) {
+                            Mail::html($message2, function (Message $message) use ($admin_mail) {
+                                $message->to($admin_mail)->subject('New employer registration - Needs to be verified');
+                            });
+                            \Illuminate\Support\Facades\Log::info("Admin notification sent for employer: {$email}");
+                        }
                     } catch (Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("Failed to send employer welcome email to {$email}: " . $e->getMessage());
+                        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
                     }
 
+                    // Send verification email to employer
                     try {
                         event(new Registered($user));
-                    } catch (Exception $ignore) {
+                        \Illuminate\Support\Facades\Log::info("Verification email event triggered for employer: {$user->email}");
+                    } catch (Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("Failed to send verification email to employer {$user->email}: " . $e->getMessage());
+                        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
                     }
+                    
                     $this->guard()->login($user);
                 }
             });

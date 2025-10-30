@@ -31,8 +31,9 @@ function Register() {
             let newErrors = {};
             Object.keys(ERROR_MESSAGES_BAG).forEach((name) => {
                 let arr = ERROR_MESSAGES_BAG[name];
-                if (arr && typeof arr == "object") {
-                    arr = JSON.stringify(arr);
+                // Extract first element if it's an array, otherwise use as is
+                if (arr && typeof arr == "object" && Array.isArray(arr)) {
+                    arr = arr[0] || arr;  // Get first error message from array
                 }
                 if (arr) {
                     newErrors[name] = arr;
@@ -40,7 +41,14 @@ function Register() {
             });
 
             setErrors(newErrors);
-            setStep(2);
+            // Keep user on the step they were on when error occurred
+            // Don't force back to step 2 if they're on step 3 or 4
+            const currentStep = localStorage.getItem("step");
+            if (currentStep && currentStep > 1) {
+                setStep(parseInt(currentStep));
+            } else {
+                setStep(2); // Default to step 2 if no step is stored
+            }
         }
     }, []);
 

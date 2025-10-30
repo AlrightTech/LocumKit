@@ -96,7 +96,7 @@ function Step4Locum({ user, setUser, setStep }) {
                     </section>
 
                     <div className="col-md-12 btn-img paypalbtnn">
-                        <button type="button" className="btn btn-default btn-1 lkbtn" style="margin-right:8px;" onClick={(_) => setStep(3)}>
+                        <button type="button" className="btn btn-default btn-1 lkbtn" style={{ marginRight: '8px' }} onClick={(_) => setStep(3)}>
                             <span>
                                 <i className="fa fa-angle-double-left" aria-hidden="true"></i> Back
                             </span>

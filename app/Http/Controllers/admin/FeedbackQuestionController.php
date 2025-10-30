@@ -134,8 +134,9 @@ class FeedbackQuestionController extends Controller
     }
     public function record()
     {
-        dd('sdkjfsdf');
-        return view('admin.finance.record');
+        // This method appears to be misplaced - should be in FinanceController
+        // Redirecting to appropriate route
+        return redirect()->route('admin.finance.record');
     }
 
 }

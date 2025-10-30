@@ -148,11 +148,18 @@
                             <label class="required control-label col-lg-2" for="active">User Status</label>
                             <div class="col-lg-10">
                                 <select name="active" class="form-control" id="active">
-                                    <option value="0" @if ($user->active == 0) selected @endif>Disable
-                                    </option>
+                                    <option value="0" @if ($user->active == 0) selected @endif>Disabled</option>
                                     <option value="1" @if ($user->active == 1) selected @endif>Active</option>
-                                    <!--<option value="2" @if ($user->active == 2) selected @endif>Block</option>-->
+                                    <option value="2" @if ($user->active == 2) selected @endif>Blocked</option>
+                                    <option value="3" @if ($user->active == 3) selected @endif>Guest User (Pending Approval)</option>
+                                    <option value="4" @if ($user->active == 4) selected @endif>Expired</option>
+                                    <option value="5" @if ($user->active == 5) selected @endif>Deleted</option>
                                 </select>
+                                <small class="text-muted">
+                                    @if($user->user_acl_role_id == 3 && $user->active == 3)
+                                        <span class="text-warning">⚠️ This employer is waiting for approval. Change to "Active" to approve.</span>
+                                    @endif
+                                </small>
                             </div>
                         </div>
                         <div class="form-group is_disable" id="role_select">

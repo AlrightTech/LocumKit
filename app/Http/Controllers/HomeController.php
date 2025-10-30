@@ -148,13 +148,18 @@ class HomeController extends Controller
                 "name" => ["required", "string", "min:3", "max:50"],
                 "email" => ["required", "email", "regex:/^[a-z0-9._%+-]+@[a-z0-9.-]+\.com$/"], 
                 "message" => ["required", "string", "min:10", "max:500"],
-                "g-recaptcha-response" => ["required"] 
+                // TEMPORARILY DISABLED - Recaptcha keys are incorrect
+                // "g-recaptcha-response" => ["required"] 
             ]);
 
+            // TEMPORARILY DISABLED - Recaptcha keys are incorrect
+            // TODO: Enable this when correct recaptcha keys are provided
+            /*
             $recaptcha = isset($data["g-recaptcha-response"]) ? $data["g-recaptcha-response"] : "";
             $url = "https://www.google.com/recaptcha/api/siteverify?secret=" . config('app.google_recaptcha_secret_key') . '&response=' . $recaptcha;
             $response = file_get_contents($url);
             $response = json_decode($response);
+            */
             $name = $request->input('name');
             $email = $request->input('email');
             $message = $request->input('message');

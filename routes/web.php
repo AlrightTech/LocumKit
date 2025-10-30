@@ -44,55 +44,72 @@ use Illuminate\Support\HtmlString;
 */
 
 use App\Mail\TestMail;
-
-Route::get('/send-email', function () {
-
-    // Hardcoded data
-    $email = 'ehsankhan0577@gmail.com';
-    $username = 'Ihsaan';
-
-    // Send email directly from route
-    Mail::to($email)->send(new TestMail($username));
-
-    return 'Email sent successfully!';
-});
-
 use App\Mail\JobNegotiateMail;
-use App\Models\JobPost;
-use App\Models\User;
 
-Route::get('/test-job-negotiate-mail', function () {
-    try {
-        $job = new JobPost();
-        $job->id = 1;
-        $job->title = "Sample Job Post";
-        $job->description = "This is a test job post.";
+// Test routes - only accessible in local environment
+if (config('app.env') === 'local') {
+    Route::get('/send-email', function () {
+        // Hardcoded data
+        $email = 'ehsankhan0577@gmail.com';
+        $username = 'Ihsaan';
 
-        $freelancer = new User();
-        $freelancer->id = 2;
-        $freelancer->name = "John Doe";
-        $freelancer->email = "freelancer@example.com";
-        $freelancer->mobile = "987-654-3210";
-        $freelancer->user_answers = [/* ... */];
+        // Send email directly from route
+        Mail::to($email)->send(new TestMail($username));
 
-        $employer = new User();
-        $employer->id = 1;
-        $employer->name = "Jane Smith";
-        $employer->email = "ehsankhan0577@gmail.com";
-        $employer->mobile = "123-456-7890";
+        return 'Email sent successfully!';
+    })->middleware('auth');
+    
+    // Test verification email sending
+    Route::get('/test-verification-email', function () {
+        $user = User::where('email', 'as9627227@gmail.com')->first();
+        
+        if (!$user) {
+            return 'User not found!';
+        }
+        
+        try {
+            event(new \Illuminate\Auth\Events\Registered($user));
+            \Illuminate\Support\Facades\Log::info("Manual verification email test for: {$user->email}");
+            return 'Verification email sent! Check logs at storage/logs/laravel.log and Mailtrap inbox.';
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Verification email failed: " . $e->getMessage());
+            return 'ERROR: ' . $e->getMessage();
+        }
+    })->middleware('auth');
 
-        $job_expected_rate = 50.00;
-        $freelancer_message = "Hi, I’d like to negotiate the rate for this job.";
+    Route::get('/test-job-negotiate-mail', function () {
+        try {
+            $job = new JobPost();
+            $job->id = 1;
+            $job->title = "Sample Job Post";
+            $job->description = "This is a test job post.";
 
-        $mail = new JobNegotiateMail($job, $freelancer, $employer, $job_expected_rate, $freelancer_message);
+            $freelancer = new User();
+            $freelancer->id = 2;
+            $freelancer->name = "John Doe";
+            $freelancer->email = "freelancer@example.com";
+            $freelancer->mobile = "987-654-3210";
+            $freelancer->user_answers = [/* ... */];
 
-        Mail::to($employer->email)->send($mail);
+            $employer = new User();
+            $employer->id = 1;
+            $employer->name = "Jane Smith";
+            $employer->email = "ehsankhan0577@gmail.com";
+            $employer->mobile = "123-456-7890";
 
-        return "Test email sent successfully!";
-    } catch (\Exception $e) {
-        return "Error: " . $e->getMessage();
-    }
-});
+            $job_expected_rate = 50.00;
+            $freelancer_message = "Hi, I'd like to negotiate the rate for this job.";
+
+            $mail = new JobNegotiateMail($job, $freelancer, $employer, $job_expected_rate, $freelancer_message);
+
+            Mail::to($employer->email)->send($mail);
+
+            return "Test email sent successfully!";
+        } catch (\Exception $e) {
+            return "Error: " . $e->getMessage();
+        }
+    })->middleware('auth');
+}
 
 
 Route::get('login', function() {
@@ -378,12 +395,16 @@ Route::prefix('email-grouping')->name('email-grouping.')->group(function () {
 
 
 // Route::get('/payment.History',[paymentController::class,'index'])->name('payment.History');
-Route::view('test', 'admin.users.index');
-Route::get('/testinglogs', function(){
-    Log::channel('queue-worker')->info('same same is working');
-    Log::channel('queue-worker')->info('calling from web');
-    return true;
-});
+// Testing routes - only accessible in local environment
+if (config('app.env') === 'local') {
+    Route::view('test', 'admin.users.index')->middleware('auth');
+    Route::get('/testinglogs', function(){
+        Log::channel('queue-worker')->info('same same is working');
+        Log::channel('queue-worker')->info('calling from web');
+        return true;
+    })->middleware('auth');
+}
+
 Route::get('email_is_veridifed', function(){
     return view('auth.verified_message');
 })->name('verify_messges');

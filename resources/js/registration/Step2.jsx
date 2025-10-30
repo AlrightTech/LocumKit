@@ -143,11 +143,12 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             }
         }
 
+        // TEMPORARILY DISABLED - Recaptcha keys are incorrect
         // CAPTCHA validation
-        if (!user.g_recaptcha_response) {
-            newErrors.g_recaptcha_response = "Please complete the CAPTCHA verification.";
-            isValid = false;
-        }
+        // if (!user.g_recaptcha_response) {
+        //     newErrors.g_recaptcha_response = "Please complete the CAPTCHA verification.";
+        //     isValid = false;
+        // }
 
         setErrors(newErrors);
 
@@ -654,7 +655,9 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     )}
                 </div>
             </div>
-            <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+            {/* TEMPORARILY DISABLED - Recaptcha keys are incorrect */}
+            {/* TODO: Enable this when correct recaptcha keys are provided */}
+            {/* <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
                 <div className="recaptcha-container">
                     <ReCAPTCHA 
                         sitekey={GOOGLE_RECAPTCHA_SITE_KEY} 
@@ -677,7 +680,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                         {errors.g_recaptcha_response}
                     </span>
                 )}
-            </div>
+            </div> */}
             <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px" }}>
                 <span className="formlft">
                     <button type="button" className="btn btn-default btn-1 lkbtn" onClick={(e) => setStep(1)}>

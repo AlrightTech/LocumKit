@@ -57,8 +57,12 @@
                                     <div class="col-md-3">
                                         <select name="status" class="form-control">
                                             <option value="">Select Status</option>
+                                            <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Disabled</option>
                                             <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Active</option>
-                                            <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Inactive</option>
+                                            <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>Blocked</option>
+                                            <option value="3" {{ request('status') == '3' ? 'selected' : '' }}>Guest User (Pending Approval)</option>
+                                            <option value="4" {{ request('status') == '4' ? 'selected' : '' }}>Expired</option>
+                                            <option value="5" {{ request('status') == '5' ? 'selected' : '' }}>Deleted</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
@@ -122,9 +126,28 @@
                                                 {{ $user->email }}
                                             </td>
                                             <td>
-    
-    
-                                                {{ $user->active == 1 ? 'Yes' : 'No' }}
+                                                @switch($user->active)
+                                                    @case(0)
+                                                        <span class="badge badge-secondary">Disabled</span>
+                                                        @break
+                                                    @case(1)
+                                                        <span class="badge badge-success">Active</span>
+                                                        @break
+                                                    @case(2)
+                                                        <span class="badge badge-danger">Blocked</span>
+                                                        @break
+                                                    @case(3)
+                                                        <span class="badge badge-warning">Guest User</span>
+                                                        @break
+                                                    @case(4)
+                                                        <span class="badge badge-info">Expired</span>
+                                                        @break
+                                                    @case(5)
+                                                        <span class="badge badge-dark">Deleted</span>
+                                                        @break
+                                                    @default
+                                                        <span class="badge badge-secondary">Unknown</span>
+                                                @endswitch
                                             </td>
                                             @cando('user/edit')
                                             <td class="text-center">

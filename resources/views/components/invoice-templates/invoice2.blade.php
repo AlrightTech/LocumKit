@@ -2,7 +2,7 @@
     <div style=" border: 2px solid #dedede; width: 100%;" class="prevboxshadow">
         <div class="mail-header" style="width: 100%; text-align: center; background: rgb(0, 169, 224) none repeat scroll 0px 0px; border-bottom:2px solid #dedede;">
             <a href={{ url('/') }}>
-                <img src="{{ env('APP_URL') . '/frontend/locumkit-template/img/logo.png' }}" alt="Locumkit" width="100px" style="margin:10px;">
+                <img src="{{ asset('frontend/locumkit-template/img/logo.png') }}" alt="Locumkit" width="100px" style="margin:10px;">
             </a>
         </div>
         <div style="margin-bottom: -5px; width: 100%;">

@@ -140,6 +140,7 @@ function Step4Employer({ user, setUser, setStep }) {
                     <input type="hidden" name="password" value={user.password} readOnly />
                     <input type="hidden" name="password_confirmation" value={user.password_confirmation} readOnly />
                     <input type="hidden" name="company" value={user.store} readOnly />
+                    <input type="hidden" name="store" value={user.store} readOnly />
                     <input type="hidden" name="address" value={user.address} readOnly />
                     <input type="hidden" name="city" value={user.city} readOnly />
                     <input type="hidden" name="zip" value={user.zip} readOnly />

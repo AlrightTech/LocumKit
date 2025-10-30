@@ -102,6 +102,11 @@ function Step3({ user, setUser, setStep }) {
 
         let isVerified = true;
         const questions_answers = user.questions_answers ?? {};
+        
+        // DEBUG: Log validation start
+        console.log('=== VALIDATION START ===');
+        console.log('User Role:', user.role);
+        console.log('User Data:', user);
         allRequiredSelectFields.forEach((element) => {
             let questionId = element.getAttribute("name").split("ans_val_for_question_id_").at(1);
             if (element.value == "") {
@@ -147,33 +152,45 @@ function Step3({ user, setUser, setStep }) {
         });
 
         if (user.role == 2) {
+            console.log('Validating LOCUM specific fields...');
+            
             const requiredDaysInput = document.querySelectorAll(".req-qus-Days");
+            console.log('Required day inputs found:', requiredDaysInput.length);
             requiredDaysInput.forEach((element) => {
                 let questionId = element.getAttribute("data-question-id");
                 let value = element.value;
+                console.log(`Day ${questionId}: value = "${value}"`);
                 if (!value || !parseInt(value) || parseInt(value) <= 0) {
                     document.getElementById("required-qus-" + questionId).textContent = "Please enter a value";
+                    console.log(`❌ FAIL: ${questionId} - No valid rate entered`);
                     isVerified = false;
                 } else {
                     document.getElementById("required-qus-" + questionId).textContent = "";
+                    console.log(`✅ PASS: ${questionId} - Rate: ${value}`);
                 }
             });
 
             const checkedMaxDistanceNodes = document.querySelectorAll("input[name=max_distance]:checked");
+            console.log('Distance selections checked:', checkedMaxDistanceNodes.length);
             if (checkedMaxDistanceNodes.length == 0) {
                 document.getElementById("store_selected_error").textContent = "Please choose an option";
+                console.log('❌ FAIL: No distance selected');
                 isVerified = false;
             } else {
                 if (document.getElementById("store_selected_error")) {
                     document.getElementById("store_selected_error").textContent = "";
                 }
+                console.log(`✅ PASS: Distance selected - ${checkedMaxDistanceNodes[0].value} miles`);
             }
 
+            console.log('GOC Number:', user.goc);
             if (!user.goc || user.goc.length < 2) {
                 isVerified = false;
                 document.getElementById("required-qus-goc-number").textContent = "Please enter correct goc number";
+                console.log('❌ FAIL: GOC number invalid or too short');
             } else {
                 document.getElementById("required-qus-goc-number").textContent = "";
+                console.log(`✅ PASS: GOC number valid - ${user.goc}`);
             }
         }
         let site_town_ids = null;
@@ -181,6 +198,16 @@ function Step3({ user, setUser, setStep }) {
             site_town_ids = JSON.parse(localStorage.getItem("site_town_ids"));
         } catch (err) {}
         setUser({ ...user, questions_answers: questions_answers, site_town_ids: site_town_ids });
+
+        console.log('=== VALIDATION RESULT ===');
+        console.log('Is Verified:', isVerified);
+        if (!isVerified) {
+            console.log('⛔ VALIDATION FAILED - Check the errors above');
+            console.log('Scroll up to see which fields failed');
+        } else {
+            console.log('✅ VALIDATION PASSED - Proceeding to Step 4');
+        }
+        console.log('========================');
 
         if (isVerified) {
             setStep(4);
@@ -432,7 +459,7 @@ function Step3({ user, setUser, setStep }) {
                                         <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "Over 50" ? true : false} value="Over 50" onClick={(e) => get_list(e.target.value)} />
                                         <span>Over 50 miles</span>
                                     </div>
-                                    <div id="store_selected_error" style={{ clear: "both", marginBottom: "10px" }}></div>
+                                    <div id="store_selected_error" className="css_error" style={{ clear: "both", marginBottom: "10px", color: "#dc3545", fontSize: "14px", fontWeight: "bold" }}></div>
                                 </div>
                             </div>
                             <div className="col-md-11">
@@ -483,7 +510,7 @@ function Step3({ user, setUser, setStep }) {
                                         value={user.goc ?? ""}
                                         onChange={(e) => setUser({ ...user, goc: e.target.value.slice(0, 8) })}
                                     />
-                                    <div id="required-qus-goc-number"></div>
+                                    <div id="required-qus-goc-number" className="css_error" style={{ color: "#dc3545", fontSize: "14px", fontWeight: "bold", marginTop: "5px" }}></div>
                                 </div>
                             </div>
                             <div className="col-md-11">
