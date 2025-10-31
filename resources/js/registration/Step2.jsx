@@ -7,30 +7,99 @@ import axios from "axios";
 function Step2({ user, setUser, setStep, errors, setErrors }) {
     const login_controller = useRef();
     const email_controller = useRef();
+    const recaptchaRef = useRef(null);
+    const setUserRef = useRef(setUser);
+    const setErrorsRef = useRef(setErrors);
+    
+    // Always keep refs updated with latest functions
+    useEffect(() => {
+        setUserRef.current = setUser;
+        setErrorsRef.current = setErrors;
+    });
 
     useEffect(() => {
-        // Debug: Check if reCAPTCHA site key is available
-        console.log('reCAPTCHA Site Key:', typeof GOOGLE_RECAPTCHA_SITE_KEY !== 'undefined' ? GOOGLE_RECAPTCHA_SITE_KEY : 'NOT DEFINED');
+        // Debug logging
+        console.log('=== Step2 Component Mounted ===');
+        console.log('GOOGLE_RECAPTCHA_SITE_KEY:', typeof GOOGLE_RECAPTCHA_SITE_KEY !== 'undefined' ? GOOGLE_RECAPTCHA_SITE_KEY : 'NOT DEFINED');
+        console.log('window.grecaptcha:', window.grecaptcha ? 'Available' : 'Not Available');
         
-        setUser({ ...user, g_recaptcha_response: null });
-        if (window.grecaptcha) {
-            window.grecaptcha.reset();
+        // Check for token in localStorage
+        const savedToken = localStorage.getItem('recaptcha_token');
+        if (savedToken && !user.g_recaptcha_response) {
+            console.log('Found saved token in localStorage, restoring...');
+            setUser((prevUser) => ({ ...prevUser, g_recaptcha_response: savedToken }));
+        } else if (user.g_recaptcha_response) {
+            console.log('reCAPTCHA token exists:', user.g_recaptcha_response);
+        } else {
+            console.log('No reCAPTCHA token found, will render widget');
         }
         
-        // Add fallback for browsers that might have issues with reCAPTCHA
-        const checkRecaptchaSupport = () => {
-            if (!window.grecaptcha) {
-                console.warn('reCAPTCHA not loaded, checking browser compatibility');
-                // Add a small delay to allow reCAPTCHA to load
-                setTimeout(() => {
-                    if (!window.grecaptcha) {
-                        setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA is not supported in this browser. Please try a different browser or contact support." });
+        // Setup global callback for reCAPTCHA using refs
+        window.onRecaptchaSuccess = function(token) {
+            console.log('=== reCAPTCHA Success Callback Triggered ===');
+            console.log('Token received:', token);
+            console.log('Token length:', token ? token.length : 0);
+            
+            // Store in localStorage immediately
+            localStorage.setItem('recaptcha_token', token);
+            console.log('reCAPTCHA token saved to localStorage.');
+            
+            // Use ref to access latest setState function
+            setUserRef.current((prevUser) => {
+                console.log('Previous user state:', prevUser);
+                const newUser = { ...prevUser, g_recaptcha_response: token };
+                console.log('New user state with token:', newUser);
+                return newUser;
+            });
+            
+            setErrorsRef.current((prevErrors) => {
+                const newErrors = { ...prevErrors };
+                delete newErrors.g_recaptcha_response;
+                return newErrors;
+            });
+            
+            console.log('Token saved to user state via ref');
+        }
+        
+        // Render reCAPTCHA when script is loaded
+        const renderRecaptcha = () => {
+            if (window.grecaptcha && window.grecaptcha.render) {
+                try {
+                    const containers = document.getElementsByClassName('g-recaptcha');
+                    if (containers && containers.length > 0 && containers[0]) {
+                        if (!containers[0].hasChildNodes()) {
+                            const widgetId = window.grecaptcha.render(containers[0], {
+                                'sitekey': GOOGLE_RECAPTCHA_SITE_KEY,
+                                'callback': 'onRecaptchaSuccess'
+                            });
+                            console.log('reCAPTCHA rendered successfully, widget ID:', widgetId);
+                            // Store widget ID for later use
+                            window.recaptchaWidgetId = widgetId;
+                        } else {
+                            console.log('reCAPTCHA already rendered');
+                        }
                     }
-                }, 3000);
+                } catch (error) {
+                    console.error('Error rendering reCAPTCHA:', error);
+                }
             }
         };
         
-        checkRecaptchaSupport();
+        // Wait for grecaptcha to be available
+        if (window.grecaptcha) {
+            window.grecaptcha.ready(renderRecaptcha);
+        } else {
+            // Poll for grecaptcha availability
+            const checkInterval = setInterval(() => {
+                if (window.grecaptcha) {
+                    clearInterval(checkInterval);
+                    window.grecaptcha.ready(renderRecaptcha);
+                }
+            }, 100);
+            
+            // Clear interval after 10 seconds
+            setTimeout(() => clearInterval(checkInterval), 10000);
+        }
     }, []);
 
     const validateFields = () => {
@@ -119,9 +188,16 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
         if (!user.zip) {
             newErrors.zip = "Postcode is required.";
             isValid = false;
-        } else if (!/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i.test(user.zip)) {
-            newErrors.zip = "Please enter a valid UK postcode format.";
-            isValid = false;
+        } else {
+            const trimmedZip = user.zip.trim();
+            const ukPostcodeRegex = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i;
+            if (!ukPostcodeRegex.test(trimmedZip)) {
+                console.log('Postcode validation failed for:', trimmedZip);
+                newErrors.zip = "Please enter a valid UK postcode format.";
+                isValid = false;
+            } else {
+                console.log('Postcode validation passed for:', trimmedZip);
+            }
         }
 
         // Telephone validation (for employers)
@@ -146,16 +222,35 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             }
         }
 
-        // CAPTCHA validation
-        if (!user.g_recaptcha_response) {
+        // CAPTCHA validation - check both state and localStorage
+        console.log('=== CAPTCHA Validation ===');
+        console.log('user.g_recaptcha_response:', user.g_recaptcha_response);
+        const savedToken = localStorage.getItem('recaptcha_token');
+        console.log('localStorage token:', savedToken);
+        
+        const recaptchaToken = user.g_recaptcha_response || savedToken;
+        console.log('Final token to validate:', recaptchaToken);
+        
+        if (!recaptchaToken || recaptchaToken.trim() === '') {
+            console.error('CAPTCHA validation FAILED - token is empty or missing in both state and localStorage');
             newErrors.g_recaptcha_response = "Please complete the CAPTCHA verification.";
             isValid = false;
+        } else {
+            console.log('CAPTCHA validation PASSED - token exists');
+            // If token was only in localStorage, sync it to state
+            if (!user.g_recaptcha_response && savedToken) {
+                console.log('Syncing token from localStorage to state...');
+                setUser((prevUser) => ({ ...prevUser, g_recaptcha_response: savedToken }));
+            }
         }
 
         setErrors(newErrors);
 
         if (isValid) {
+            console.log('All validations passed, moving to Step 3');
             setStep(3);
+        } else {
+            console.error('Validation failed with errors:', newErrors);
         }
     };
 
@@ -657,32 +752,24 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     )}
                 </div>
             </div>
-            <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-                <div className="recaptcha-container">
-                    {typeof GOOGLE_RECAPTCHA_SITE_KEY !== 'undefined' && GOOGLE_RECAPTCHA_SITE_KEY ? (
-                        <ReCAPTCHA 
-                            sitekey={GOOGLE_RECAPTCHA_SITE_KEY} 
-                            onChange={onGoogleRecaptchaChange}
-                            size="normal"
-                            theme="light"
-                            onErrored={() => {
-                                console.error('reCAPTCHA error occurred');
-                                setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA failed to load. Please refresh the page and try again." });
-                            }}
-                            onExpired={() => {
-                                console.warn('reCAPTCHA expired');
-                                setUser({ ...user, g_recaptcha_response: null });
-                                setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA expired. Please complete it again." });
-                            }}
-                        />
-                    ) : (
-                        <div style={{ padding: '10px', color: 'red', border: '1px solid red', borderRadius: '5px' }}>
-                            reCAPTCHA is not configured. Site key is missing.
+            <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px" }}>
+                <div className="recaptcha-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                    {user.g_recaptcha_response ? (
+                        <div style={{ padding: '15px', backgroundColor: '#d4edda', border: '2px solid #28a745', borderRadius: '5px', color: '#155724' }}>
+                            <i className="fa fa-check-circle" style={{ color: '#28a745', marginRight: '10px', fontSize: '20px' }}></i>
+                            <strong>reCAPTCHA Completed Successfully!</strong>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>You can now proceed to the next step.</p>
                         </div>
+                    ) : (
+                        <div 
+                            className="g-recaptcha" 
+                            data-sitekey={GOOGLE_RECAPTCHA_SITE_KEY}
+                            data-callback="onRecaptchaSuccess"
+                        ></div>
                     )}
                 </div>
                 {errors && errors.g_recaptcha_response && (
-                    <span className="css_error" id="g_recaptcha_response_error">
+                    <span className="css_error" id="g_recaptcha_response_error" style={{ display: 'block', marginTop: '10px' }}>
                         {errors.g_recaptcha_response}
                     </span>
                 )}

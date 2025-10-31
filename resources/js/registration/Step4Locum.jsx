@@ -61,7 +61,7 @@ function Step4Locum({ user, setUser, setStep }) {
                         <input type="hidden" name="zip" value={user.zip} readOnly />
                         <input type="hidden" name="telephone" value={user.telephone} readOnly />
                         <input type="hidden" name="mobile" value={user.mobile} readOnly />
-                        <input type="hidden" name="g_recaptcha_response" value={user.g_recaptcha_response} readOnly />
+                        <input type="hidden" name="g-recaptcha-response" value={user.g_recaptcha_response || localStorage.getItem('recaptcha_token') || ''} readOnly />
                         <input type="hidden" name="min_rate[]" value={user.min_rate.monday} readOnly />
                         <input type="hidden" name="min_rate[]" value={user.min_rate.tuesday} readOnly />
                         <input type="hidden" name="min_rate[]" value={user.min_rate.wednesday} readOnly />

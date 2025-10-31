@@ -146,7 +146,7 @@ function Step4Employer({ user, setUser, setStep }) {
                     <input type="hidden" name="zip" value={user.zip} readOnly />
                     <input type="hidden" name="telephone" value={user.telephone} readOnly />
                     <input type="hidden" name="mobile" value={user.mobile} readOnly />
-                    <input type="hidden" name="g_recaptcha_response" value={user.g_recaptcha_response} readOnly />
+                    <input type="hidden" name="g-recaptcha-response" value={user.g_recaptcha_response || localStorage.getItem('recaptcha_token') || ''} readOnly />
                     <input type="hidden" name="store_id_emp" value={user.store_id_emp} readOnly />
                     <div id="question_div"></div>
                 </div>

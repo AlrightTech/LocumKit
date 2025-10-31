@@ -69,10 +69,47 @@ class RegisterController extends Controller
      */
     public function showRegistrationForm()
     {
-        $roles = UserAclRole::where("is_public", true)->get();
-        $professions = UserAclProfession::where("is_active", true)->get();
-        $questions = UserQuestion::where("is_active", true)->orderBy('sort_order', 'asc')->get();
-        return view('auth.register', ['roles' => $roles, 'professions' => $professions, 'questions' => $questions]);
+        try {
+            // Check database connection first
+            DB::connection()->getPdo();
+            
+            $roles = UserAclRole::where("is_public", true)->get();
+            $professions = UserAclProfession::where("is_active", true)->get();
+            $questions = UserQuestion::where("is_active", true)->orderBy('sort_order', 'asc')->get();
+            
+            // Log for debugging if data is missing
+            if ($roles->isEmpty()) {
+                \Illuminate\Support\Facades\Log::warning("No public roles found in database. Please run seeders.");
+            }
+            if ($professions->isEmpty()) {
+                \Illuminate\Support\Facades\Log::warning("No active professions found in database. Please run seeders.");
+            }
+            
+            return view('auth.register', [
+                'roles' => $roles, 
+                'professions' => $professions, 
+                'questions' => $questions
+            ]);
+        } catch (\PDOException $e) {
+            // Database connection error
+            \Illuminate\Support\Facades\Log::error("Database connection error: " . $e->getMessage());
+            return response()->view('errors.minimal', [
+                'message' => 'Database connection error. Please check your database configuration.',
+                'details' => config('app.debug') ? $e->getMessage() : ''
+            ], 500);
+        } catch (\Exception $e) {
+            // Log the actual error for debugging
+            \Illuminate\Support\Facades\Log::error("Registration form error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+            
+            // Return error details in debug mode, generic message otherwise
+            $message = 'Unable to load registration form.';
+            if (config('app.debug')) {
+                $message .= ' Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine();
+            }
+            
+            return response($message, 500);
+        }
     }
 
     /**
@@ -90,21 +127,39 @@ class RegisterController extends Controller
             return back()->with("error", "Please complete the CAPTCHA verification.");
         }
         
-        $url = "https://www.google.com/recaptcha/api/siteverify?secret=" . config('app.google_recaptcha_secret_key') . '&response=' . $recaptcha;
-        try {
-            $response = file_get_contents($url);
-            $response = json_decode($response);
-            if ($response->success == false) {
-                return back()->with("error", "CAPTCHA validation failed. Please try again.");
+        // Skip Google verification for test keys (development mode)
+        $testSiteKey = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
+        $isTestKey = config('app.google_recaptcha_site_key') === $testSiteKey;
+        
+        if (!$isTestKey) {
+            // Only verify with Google if using real keys
+            $url = "https://www.google.com/recaptcha/api/siteverify?secret=" . config('app.google_recaptcha_secret_key') . '&response=' . $recaptcha;
+            try {
+                $response = file_get_contents($url);
+                $response = json_decode($response);
+                if ($response->success == false) {
+                    return back()->with("error", "CAPTCHA validation failed. Please try again.");
+                }
+            } catch (Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("reCAPTCHA verification error: " . $e->getMessage());
+                return back()->with("error", "CAPTCHA validation error. Please try again.");
             }
-        } catch (Throwable $e) {
-            return back()->with("error", "CAPTCHA validation error. Please try again.");
+        } else {
+            // Test keys - just verify token exists
+            \Illuminate\Support\Facades\Log::info("Using test reCAPTCHA keys - skipping Google verification");
         }
 
         $role_id = $request->input('role');
+        
+        \Illuminate\Support\Facades\Log::info("=== Registration Process Started ===");
+        \Illuminate\Support\Facades\Log::info("Role ID: " . $role_id);
+        \Illuminate\Support\Facades\Log::info("Email: " . $request->input('email'));
+        \Illuminate\Support\Facades\Log::info("reCAPTCHA token received: " . ($recaptcha ? 'YES' : 'NO'));
 
+        $savedUser = null;
         try {
-            DB::transaction(function () use ($request, $role_id) {
+            DB::transaction(function () use ($request, $role_id, &$savedUser) {
+                \Illuminate\Support\Facades\Log::info("Inside DB transaction");
 
                 $profession_id  = $request->input('profession');
                 $package_id  = $request->input('package_id');
@@ -197,6 +252,10 @@ class RegisterController extends Controller
                     'user_acl_profession_id' => $profession_id,
                     'user_acl_package_id' => $package_id,
                 ]);
+                
+                // Store the user reference to use after transaction
+                $savedUser = $user;
+                
                 $admin = User::where('user_acl_role_id', 1)->first();
                 
                 if ($admin) {
@@ -309,15 +368,9 @@ class RegisterController extends Controller
                         "payment_status" => 1,
                     ]);
                     
-                    // Send verification email to the user
-                    try {
-                        event(new Registered($user));
-                        \Illuminate\Support\Facades\Log::info("Verification email event triggered for user: {$user->email}");
-                    } catch (Exception $e) {
-                        // Log the error instead of silently ignoring it
-                        \Illuminate\Support\Facades\Log::error("Failed to send verification email to {$user->email}: " . $e->getMessage());
-                        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
-                    }
+                    // Verification email will be sent AFTER transaction completes
+                    // This ensures the user exists in DB before sending email
+                    \Illuminate\Support\Facades\Log::info("Locum user created, will send verification after transaction");
                     
                     $this->guard()->login($user);
                 }
@@ -391,14 +444,9 @@ class RegisterController extends Controller
                         \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
                     }
 
-                    // Send verification email to employer
-                    try {
-                        event(new Registered($user));
-                        \Illuminate\Support\Facades\Log::info("Verification email event triggered for employer: {$user->email}");
-                    } catch (Exception $e) {
-                        \Illuminate\Support\Facades\Log::error("Failed to send verification email to employer {$user->email}: " . $e->getMessage());
-                        \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
-                    }
+                    // Verification email will be sent AFTER transaction completes
+                    // This ensures the user exists in DB before sending email
+                    \Illuminate\Support\Facades\Log::info("Employer user created, will send verification after transaction");
                     
                     $this->guard()->login($user);
                 }
@@ -408,6 +456,20 @@ class RegisterController extends Controller
         } catch (Exception $e) {
             return back()->with("error", $e->getMessage());
         }
+        
+        // Send verification email AFTER successful database transaction
+        // This ensures the user is fully saved before attempting to send email
+        if ($savedUser) {
+            try {
+                event(new Registered($savedUser));
+                \Illuminate\Support\Facades\Log::info("✓ Verification email event triggered for user: {$savedUser->email}");
+            } catch (Exception $e) {
+                // Log the error but don't break the registration flow
+                \Illuminate\Support\Facades\Log::error("✗ Failed to send verification email to {$savedUser->email}: " . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+            }
+        }
+        
         if ($role_id == 2) {
             return redirect("/thank-you?type=freelancer");
         }
