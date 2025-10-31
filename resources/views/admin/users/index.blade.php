@@ -137,7 +137,7 @@
                                                         <span class="badge badge-danger">Blocked</span>
                                                         @break
                                                     @case(3)
-                                                        @if($user->user_acl_role_id == 3)
+                                                        @if($user->user_acl_role_id == 3 || $user->user_acl_role_id == 2)
                                                             <span class="badge badge-warning" 
                                                                   onclick="showApprovalModal({{ $user->id }}, '{{ $user->firstname }}', '{{ $user->lastname }}')"
                                                                   style="font-size: 12px; padding: 8px 12px; cursor: pointer; transition: all 0.3s ease; display: inline-block;"
@@ -237,13 +237,13 @@
                                                                     <i class="fa fa-user-circle" style="color: #667eea;"></i>
                                                                 </div>
                                                                 <h6 style="font-size: 18px; color: #333; font-weight: 600; margin-bottom: 8px;">
-                                                                    Review Employer Application
+                                                                    Review User Application
                                                                 </h6>
                                                                 <p style="color: #666; font-size: 15px; margin-top: 10px;">
-                                                                    <strong>Employer:</strong> <span id="employerName" style="color: #333;"></span>
+                                                                    <strong>User:</strong> <span id="employerName" style="color: #333;"></span>
                                                                 </p>
                                                                 <p style="color: #888; font-size: 13px; margin-top: 15px;">
-                                                                    Would you like to approve or reject this employer?
+                                                                    Would you like to approve or reject this user?
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -282,7 +282,7 @@
                                                     currentUserId = userId;
                                                     const fullName = firstName + ' ' + lastName;
                                                     document.getElementById('employerName').textContent = fullName;
-                                                    document.getElementById('approvalModalTitle').innerHTML = '<i class="fa fa-user-check" style="margin-right: 8px;"></i>Review Employer';
+                                                    document.getElementById('approvalModalTitle').innerHTML = '<i class="fa fa-user-check" style="margin-right: 8px;"></i>Review User Application';
                                                     
                                                     $('#approvalModal').modal('show');
                                                 }

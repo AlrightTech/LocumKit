@@ -58,7 +58,7 @@ class HomeController extends Controller
             $msg = "Package has been successfully changed, now you can enjoy the services of locumkit.";
         } else {
             if ($request->has('type') && $request->input('type') == 'freelancer') {
-                $msg = "Thank you for registering. <br/> You are now one step away from benefiting all that LocumKit has. <br/>Please check your email to verify your account.";
+                $msg = "<p>Thank you for joining Locumkit.</p><p>We have received your account application and your details are currently being verified by our team. Verification can take up to 48 hours and once this process is complete we will notify you.</p><p>Please check your email to verify your account.</p><p>Please note that during this process you will be unable to access any of the features of the site until your account has been approved by our admin team.</p>";
             }
             if ($request->has('type') && $request->input('type') == 'employer') {
                 $msg = "<p>Thank you for joining Locumkit.</p><p> We have received your account application and your details are currently being verified by our team. Verification can take up to 48 hours and once this process is complete we will notify you.</p><p> Please note that during this process you will be unable to access any of the features of the site</p>";

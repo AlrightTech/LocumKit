@@ -248,7 +248,7 @@ class RegisterController extends Controller
                     'login' => $login,
                     'password' => Hash::make($password),
                     'user_acl_role_id' => $role_id,
-                    'active' => $role_id == User::USER_ROLE_EMPLOYER ? User::USER_STATUS_GUESTUSER : User::USER_STATUS_ACTIVE,
+                    'active' => ($role_id == User::USER_ROLE_EMPLOYER || $role_id == User::USER_ROLE_LOCUM) ? User::USER_STATUS_GUESTUSER : User::USER_STATUS_ACTIVE,
                     'user_acl_profession_id' => $profession_id,
                     'user_acl_package_id' => $package_id,
                 ]);

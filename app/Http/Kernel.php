@@ -67,6 +67,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'is_employer_active' => \App\Http\Middleware\IsEmployerActive::class,
+        'is_locum_active' => \App\Http\Middleware\IsLocumActive::class,
         'auth.approutes' => \App\Http\Middleware\ApiRoutesAuthenticate::class,
         'check.role' => \App\Http\Middleware\CheckUserRole::class,
         'check.freelancer' => \App\Http\Middleware\CheckFreelancer::class,

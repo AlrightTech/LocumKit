@@ -224,16 +224,24 @@ class UserController extends Controller
     }
 
     /**
-     * Quick approve an employer account (change status from Guest User to Active)
+     * Quick approve a user account (change status from Guest User to Active)
+     * Works for both Employers and Locums
      */
     public function quickApprove($id)
     {
         $user = User::findOrFail($id);
         
-        // Only approve if user is an employer (role 3) and currently a guest user (status 3)
-        if ($user->user_acl_role_id == User::USER_ROLE_EMPLOYER && $user->active == User::USER_STATUS_GUESTUSER) {
-            $previousStatus = $user->active;
+        // Approve if user is an employer or locum and currently a guest user
+        if (($user->user_acl_role_id == User::USER_ROLE_EMPLOYER || $user->user_acl_role_id == User::USER_ROLE_LOCUM) 
+            && $user->active == User::USER_STATUS_GUESTUSER) {
+            
             $user->active = User::USER_STATUS_ACTIVE; // Set to Active
+            
+            // Auto-verify email if not already verified (since admin has approved them)
+            if (is_null($user->email_verified_at)) {
+                $user->email_verified_at = now();
+            }
+            
             $user->save();
             
             // Send notifications to the user
@@ -244,24 +252,26 @@ class UserController extends Controller
                 \Illuminate\Support\Facades\Log::error("Failed to send approval notification to user {$user->email}: " . $e->getMessage());
             }
             
+            $userType = $user->user_acl_role_id == User::USER_ROLE_EMPLOYER ? 'Employer' : 'Locum';
             return redirect()->back()->with('success', 
-                "Employer {$user->firstname} {$user->lastname} has been approved and can now access the platform!");
-        } elseif ($user->user_acl_role_id != User::USER_ROLE_EMPLOYER) {
-            return redirect()->back()->with('error', 'This user is not an employer account.');
+                "{$userType} {$user->firstname} {$user->lastname} has been approved and can now access the platform!");
         } else {
             return redirect()->back()->with('error', 'User is not pending approval.');
         }
     }
 
     /**
-     * Quick reject an employer account (change status from Guest User to Disabled)
+     * Quick reject a user account (change status from Guest User to Disabled)
+     * Works for both Employers and Locums
      */
     public function quickReject($id)
     {
         $user = User::findOrFail($id);
         
-        // Only reject if user is an employer (role 3) and currently a guest user (status 3)
-        if ($user->user_acl_role_id == User::USER_ROLE_EMPLOYER && $user->active == User::USER_STATUS_GUESTUSER) {
+        // Reject if user is an employer or locum and currently a guest user
+        if (($user->user_acl_role_id == User::USER_ROLE_EMPLOYER || $user->user_acl_role_id == User::USER_ROLE_LOCUM) 
+            && $user->active == User::USER_STATUS_GUESTUSER) {
+            
             $user->active = User::USER_STATUS_DISABLE; // Set to Disabled
             $user->save();
             
@@ -272,10 +282,9 @@ class UserController extends Controller
                 \Illuminate\Support\Facades\Log::error("Failed to send rejection notification to user {$user->email}: " . $e->getMessage());
             }
             
+            $userType = $user->user_acl_role_id == User::USER_ROLE_EMPLOYER ? 'Employer' : 'Locum';
             return redirect()->back()->with('success', 
-                "Employer {$user->firstname} {$user->lastname} has been rejected.");
-        } elseif ($user->user_acl_role_id != User::USER_ROLE_EMPLOYER) {
-            return redirect()->back()->with('error', 'This user is not an employer account.');
+                "{$userType} {$user->firstname} {$user->lastname} has been rejected.");
         } else {
             return redirect()->back()->with('error', 'User is not pending approval.');
         }
