@@ -137,17 +137,35 @@
                                                         <span class="badge badge-danger">Blocked</span>
                                                         @break
                                                     @case(3)
-                                                        <span class="badge badge-warning">Guest User</span>
                                                         @if($user->user_acl_role_id == 3)
-                                                            <form action="{{ route('admin.users.quick-approve', $user->id) }}" method="POST" style="display: inline; margin-left: 5px;">
+                                                            <span class="badge badge-warning" 
+                                                                  onclick="showApprovalModal({{ $user->id }}, '{{ $user->firstname }}', '{{ $user->lastname }}')"
+                                                                  style="font-size: 12px; padding: 8px 12px; cursor: pointer; transition: all 0.3s ease; display: inline-block;"
+                                                                  onmouseover="this.style.backgroundColor='#e0a800'; this.style.transform='scale(1.05)'"
+                                                                  onmouseout="this.style.backgroundColor=''; this.style.transform='scale(1)'">
+                                                                <i class="fa fa-clock-o"></i> Pending Approval <i class="fa fa-hand-pointer-o" style="margin-left: 5px;"></i>
+                                                            </span>
+                                                            
+                                                            <!-- Hidden forms for approve/reject -->
+                                                            <form id="approve-form-{{ $user->id }}" 
+                                                                  action="{{ route('admin.users.quick-approve', $user->id) }}" 
+                                                                  method="POST" 
+                                                                  style="display: none;">
                                                                 @csrf
                                                                 @method('PATCH')
-                                                                <button type="submit" class="btn btn-sm btn-success" 
-                                                                        onclick="return confirm('Are you sure you want to approve this employer: {{ $user->firstname }} {{ $user->lastname }}?')"
-                                                                        title="Approve this employer">
-                                                                    <i class="fa fa-check"></i> Approve
-                                                                </button>
                                                             </form>
+                                                            
+                                                            <form id="reject-form-{{ $user->id }}" 
+                                                                  action="{{ route('admin.users.quick-reject', $user->id) }}" 
+                                                                  method="POST" 
+                                                                  style="display: none;">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                            </form>
+                                                        @else
+                                                            <span class="badge badge-warning" style="font-size: 12px; padding: 6px 10px;">
+                                                                <i class="fa fa-clock-o"></i> Pending Approval
+                                                            </span>
                                                         @endif
                                                         @break
                                                     @case(4)
@@ -199,9 +217,54 @@
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <!-- Approval/Rejection Modal HTML -->
+                                            <div class="modal fade" id="approvalModal" tabindex="-1" role="dialog" aria-labelledby="approvalModalLabel" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered" role="document">
+                                                    <div class="modal-content" style="border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+                                                        <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                                                            <h5 class="modal-title" id="approvalModalLabel" style="font-weight: 600;">
+                                                                <i class="fa fa-user-circle" style="margin-right: 8px;"></i>
+                                                                <span id="approvalModalTitle">Confirm Action</span>
+                                                            </h5>
+                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
+                                                                <span aria-hidden="true">&times;</span>
+                                                            </button>
+                                                        </div>
+                                                        <div class="modal-body" style="padding: 30px 25px;">
+                                                            <div style="text-align: center; margin-bottom: 20px;">
+                                                                <div id="approvalIcon" style="font-size: 64px; margin-bottom: 15px;">
+                                                                    <i class="fa fa-user-circle" style="color: #667eea;"></i>
+                                                                </div>
+                                                                <h6 style="font-size: 18px; color: #333; font-weight: 600; margin-bottom: 8px;">
+                                                                    Review Employer Application
+                                                                </h6>
+                                                                <p style="color: #666; font-size: 15px; margin-top: 10px;">
+                                                                    <strong>Employer:</strong> <span id="employerName" style="color: #333;"></span>
+                                                                </p>
+                                                                <p style="color: #888; font-size: 13px; margin-top: 15px;">
+                                                                    Would you like to approve or reject this employer?
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer" style="border-top: 1px solid #e9ecef; padding: 20px 25px; background-color: #f8f9fa; display: flex; justify-content: center; gap: 10px;">
+                                                            <button type="button" class="btn btn-secondary" data-dismiss="modal" style="padding: 10px 25px; border-radius: 4px; font-weight: 500;">
+                                                                <i class="fa fa-times"></i> Cancel
+                                                            </button>
+                                                            <button type="button" class="btn btn-danger" id="reject-button" style="padding: 10px 25px; border-radius: 4px; font-weight: 500;">
+                                                                <i class="fa fa-times-circle"></i> Reject
+                                                            </button>
+                                                            <button type="button" class="btn btn-success" id="approve-button" style="padding: 10px 25px; border-radius: 4px; font-weight: 500;">
+                                                                <i class="fa fa-check-circle"></i> Approve
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             
                                             <script>
                                                 let deleteFormId = null;
+                                                let currentUserId = null;
                                             
                                                 function confirmDelete(userId) {
                                                     deleteFormId = `delete-form-${userId}`;
@@ -213,7 +276,37 @@
                                                         document.getElementById(deleteFormId).submit();
                                                     }
                                                     $('#deleteModal').modal('hide');
-                                                    // location.reload();
+                                                });
+
+                                                function showApprovalModal(userId, firstName, lastName) {
+                                                    currentUserId = userId;
+                                                    const fullName = firstName + ' ' + lastName;
+                                                    document.getElementById('employerName').textContent = fullName;
+                                                    document.getElementById('approvalModalTitle').innerHTML = '<i class="fa fa-user-check" style="margin-right: 8px;"></i>Review Employer';
+                                                    
+                                                    $('#approvalModal').modal('show');
+                                                }
+                                            
+                                                // Approve button click handler
+                                                document.getElementById('approve-button').addEventListener('click', function () {
+                                                    if (currentUserId) {
+                                                        const approveForm = document.getElementById(`approve-form-${currentUserId}`);
+                                                        if (approveForm) {
+                                                            approveForm.submit();
+                                                        }
+                                                    }
+                                                    $('#approvalModal').modal('hide');
+                                                });
+
+                                                // Reject button click handler
+                                                document.getElementById('reject-button').addEventListener('click', function () {
+                                                    if (currentUserId) {
+                                                        const rejectForm = document.getElementById(`reject-form-${currentUserId}`);
+                                                        if (rejectForm) {
+                                                            rejectForm.submit();
+                                                        }
+                                                    }
+                                                    $('#approvalModal').modal('hide');
                                                 });
                                             </script>
     

@@ -253,6 +253,34 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Quick reject an employer account (change status from Guest User to Disabled)
+     */
+    public function quickReject($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Only reject if user is an employer (role 3) and currently a guest user (status 3)
+        if ($user->user_acl_role_id == User::USER_ROLE_EMPLOYER && $user->active == User::USER_STATUS_GUESTUSER) {
+            $user->active = User::USER_STATUS_DISABLE; // Set to Disabled
+            $user->save();
+            
+            // Send notification to the user
+            try {
+                $user->notify(new UserAccountActiveNotification(false));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send rejection notification to user {$user->email}: " . $e->getMessage());
+            }
+            
+            return redirect()->back()->with('success', 
+                "Employer {$user->firstname} {$user->lastname} has been rejected.");
+        } elseif ($user->user_acl_role_id != User::USER_ROLE_EMPLOYER) {
+            return redirect()->back()->with('error', 'This user is not an employer account.');
+        } else {
+            return redirect()->back()->with('error', 'User is not pending approval.');
+        }
+    }
+
 
     public function create()
     {
