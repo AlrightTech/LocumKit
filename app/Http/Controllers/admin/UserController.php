@@ -223,6 +223,36 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Quick approve an employer account (change status from Guest User to Active)
+     */
+    public function quickApprove($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Only approve if user is an employer (role 3) and currently a guest user (status 3)
+        if ($user->user_acl_role_id == User::USER_ROLE_EMPLOYER && $user->active == User::USER_STATUS_GUESTUSER) {
+            $previousStatus = $user->active;
+            $user->active = User::USER_STATUS_ACTIVE; // Set to Active
+            $user->save();
+            
+            // Send notifications to the user
+            try {
+                $user->notify(new UserAccountActiveNotification(true));
+                $user->notify(new AccountActiveNotification());
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send approval notification to user {$user->email}: " . $e->getMessage());
+            }
+            
+            return redirect()->back()->with('success', 
+                "Employer {$user->firstname} {$user->lastname} has been approved and can now access the platform!");
+        } elseif ($user->user_acl_role_id != User::USER_ROLE_EMPLOYER) {
+            return redirect()->back()->with('error', 'This user is not an employer account.');
+        } else {
+            return redirect()->back()->with('error', 'User is not pending approval.');
+        }
+    }
+
 
     public function create()
     {

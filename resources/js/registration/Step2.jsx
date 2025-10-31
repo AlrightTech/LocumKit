@@ -9,6 +9,9 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
     const email_controller = useRef();
 
     useEffect(() => {
+        // Debug: Check if reCAPTCHA site key is available
+        console.log('reCAPTCHA Site Key:', typeof GOOGLE_RECAPTCHA_SITE_KEY !== 'undefined' ? GOOGLE_RECAPTCHA_SITE_KEY : 'NOT DEFINED');
+        
         setUser({ ...user, g_recaptcha_response: null });
         if (window.grecaptcha) {
             window.grecaptcha.reset();
@@ -143,12 +146,11 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             }
         }
 
-        // TEMPORARILY DISABLED - Recaptcha keys are incorrect
         // CAPTCHA validation
-        // if (!user.g_recaptcha_response) {
-        //     newErrors.g_recaptcha_response = "Please complete the CAPTCHA verification.";
-        //     isValid = false;
-        // }
+        if (!user.g_recaptcha_response) {
+            newErrors.g_recaptcha_response = "Please complete the CAPTCHA verification.";
+            isValid = false;
+        }
 
         setErrors(newErrors);
 
@@ -655,32 +657,36 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     )}
                 </div>
             </div>
-            {/* TEMPORARILY DISABLED - Recaptcha keys are incorrect */}
-            {/* TODO: Enable this when correct recaptcha keys are provided */}
-            {/* <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+            <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
                 <div className="recaptcha-container">
-                    <ReCAPTCHA 
-                        sitekey={GOOGLE_RECAPTCHA_SITE_KEY} 
-                        onChange={onGoogleRecaptchaChange}
-                        size="compact"
-                        theme="light"
-                        onErrored={() => {
-                            console.error('reCAPTCHA error occurred');
-                            setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA failed to load. Please refresh the page and try again." });
-                        }}
-                        onExpired={() => {
-                            console.warn('reCAPTCHA expired');
-                            setUser({ ...user, g_recaptcha_response: null });
-                            setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA expired. Please complete it again." });
-                        }}
-                    />
+                    {typeof GOOGLE_RECAPTCHA_SITE_KEY !== 'undefined' && GOOGLE_RECAPTCHA_SITE_KEY ? (
+                        <ReCAPTCHA 
+                            sitekey={GOOGLE_RECAPTCHA_SITE_KEY} 
+                            onChange={onGoogleRecaptchaChange}
+                            size="normal"
+                            theme="light"
+                            onErrored={() => {
+                                console.error('reCAPTCHA error occurred');
+                                setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA failed to load. Please refresh the page and try again." });
+                            }}
+                            onExpired={() => {
+                                console.warn('reCAPTCHA expired');
+                                setUser({ ...user, g_recaptcha_response: null });
+                                setErrors({ ...errors, g_recaptcha_response: "reCAPTCHA expired. Please complete it again." });
+                            }}
+                        />
+                    ) : (
+                        <div style={{ padding: '10px', color: 'red', border: '1px solid red', borderRadius: '5px' }}>
+                            reCAPTCHA is not configured. Site key is missing.
+                        </div>
+                    )}
                 </div>
                 {errors && errors.g_recaptcha_response && (
                     <span className="css_error" id="g_recaptcha_response_error">
                         {errors.g_recaptcha_response}
                     </span>
                 )}
-            </div> */}
+            </div>
             <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px" }}>
                 <span className="formlft">
                     <button type="button" className="btn btn-default btn-1 lkbtn" onClick={(e) => setStep(1)}>

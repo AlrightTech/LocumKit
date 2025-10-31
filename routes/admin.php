@@ -105,6 +105,10 @@ Route::group(['middleware' => ['auth', 'check.role'], "prefix" => "admin"], func
 
 
     Route::resource('dashboard', AdminController::class)->names('admin.dashboard');
+    
+    // Quick approve route for employer verification
+    Route::patch('users/{id}/quick-approve', [UserController::class, 'quickApprove'])->name('admin.users.quick-approve');
+    
     Route::resource('users', UserController::class)->names('admin.users');
     Route::resource('jobs', JobController::class)->names('admin.jobs');
     Route::resource('category', CategoryController::class)->names('admin.category');

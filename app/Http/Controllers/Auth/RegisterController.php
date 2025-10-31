@@ -83,9 +83,6 @@ class RegisterController extends Controller
      */
     public function register(Request $request)
     {
-        // TEMPORARILY DISABLED - Recaptcha keys are incorrect
-        // TODO: Enable this when correct recaptcha keys are provided
-        /*
         $recaptcha = $request->input("g-recaptcha-response", "");
         
         // Validate reCAPTCHA
@@ -103,7 +100,6 @@ class RegisterController extends Controller
         } catch (Throwable $e) {
             return back()->with("error", "CAPTCHA validation error. Please try again.");
         }
-        */
 
         $role_id = $request->input('role');
 

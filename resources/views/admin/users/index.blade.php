@@ -138,6 +138,17 @@
                                                         @break
                                                     @case(3)
                                                         <span class="badge badge-warning">Guest User</span>
+                                                        @if($user->user_acl_role_id == 3)
+                                                            <form action="{{ route('admin.users.quick-approve', $user->id) }}" method="POST" style="display: inline; margin-left: 5px;">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <button type="submit" class="btn btn-sm btn-success" 
+                                                                        onclick="return confirm('Are you sure you want to approve this employer: {{ $user->firstname }} {{ $user->lastname }}?')"
+                                                                        title="Approve this employer">
+                                                                    <i class="fa fa-check"></i> Approve
+                                                                </button>
+                                                            </form>
+                                                        @endif
                                                         @break
                                                     @case(4)
                                                         <span class="badge badge-info">Expired</span>
