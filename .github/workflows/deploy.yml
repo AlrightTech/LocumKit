@@ -1,0 +1,30 @@
+name: 🚀 Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  deploy:
+    name: SSH Deploy to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 🔐 Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 199.250.202.252 >> ~/.ssh/known_hosts
+          
+      - name: 📦 Deploy via SSH
+        run: |
+          ssh -i ~/.ssh/id_rsa locumk5@199.250.202.252 << 'EOF'
+            cd /home/locumk5/public_html
+            git pull origin main
+          EOF
