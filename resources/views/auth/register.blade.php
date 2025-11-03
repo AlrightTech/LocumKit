@@ -176,7 +176,7 @@
         const REGISTRATION_VALIDATION_URI = `{{ url('/ajax/registration-info-check') }}`;
         const CSRF_TOKEN = `{{ csrf_token() }}`;
         const REGISTER_FORM_URI = `{{ url('/register') }}`;
-        const ERROR_MESSAGES_BAG = @json($errors->jsonSerialize());
+        const ERROR_MESSAGES_BAG = @json(isset($errors) ? $errors->jsonSerialize() : []);
     </script>
 
     <script>

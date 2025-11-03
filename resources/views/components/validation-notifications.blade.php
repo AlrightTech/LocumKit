@@ -20,7 +20,7 @@
         }).showToast();
     </script>
 @endif
-@if ($errors->any())
+@if (isset($errors) && $errors->any())
     @php
         $errorUlInner = '';
         foreach ($errors->all() as $value) {

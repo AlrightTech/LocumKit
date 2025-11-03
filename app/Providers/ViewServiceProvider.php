@@ -40,5 +40,12 @@ class ViewServiceProvider extends ServiceProvider
         View::composer(['auth.register', 'employer.edit-profile', 'employer.manage-store', 'freelancer.edit-profile'], function (ViewHelper $view) use ($available_tags) {
             $view->with('site_towns_available_tags', $available_tags);
         });
+        
+        // Ensure $errors is always available in all views
+        View::composer('*', function (ViewHelper $view) {
+            if (!isset($view->errors)) {
+                $view->with('errors', session()->get('errors', new \Illuminate\Support\ViewErrorBag()));
+            }
+        });
     }
 }

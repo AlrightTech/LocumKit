@@ -239,7 +239,7 @@
                             <div class="col-md-12 col-sm-12 col-xs-12 formlft">
                                 <h2>Welcome back!</h2>
 
-                                @if ($errors->any())
+                                @if (isset($errors) && $errors->any())
                                     <div class="alert alert-danger"
                                         style="margin-bottom: 15px; padding: 10px; border-radius: 5px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24;">
                                         <ul class="mb-0" style="margin-bottom: 0; padding-left: 20px;">
@@ -325,7 +325,7 @@
         });
 
         // Show login modal if there are validation errors
-        @if ($errors->any())
+        @if (isset($errors) && $errors->any())
             $(document).ready(function() {
                 // Show the modal and prevent it from being hidden
                 $('#login-form-model').modal({
@@ -345,7 +345,7 @@
         @endif
 
         // Handle successful login (no errors) - ensure modal can close normally
-        @if (!$errors->any())
+        @if (!isset($errors) || !$errors->any())
             $(document).ready(function() {
                 // Allow normal modal behavior when there are no errors
                 $('#login-form-model').modal({
@@ -356,7 +356,7 @@
         @endif
 
         // Additional protection to prevent modal hiding when there are errors
-        @if ($errors->any())
+        @if (isset($errors) && $errors->any())
             $(document).on('hide.bs.modal', '#login-form-model', function(e) {
                 // Only allow hiding if it's triggered by the close button
                 if (!$(e.target).hasClass('manual-close-allowed')) {
