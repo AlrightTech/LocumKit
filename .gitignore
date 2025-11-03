@@ -47,3 +47,55 @@ previous_code/
 *.log
 error_log
 storage/firebase-credentials.json
+
+
+# Laravel default
+/vendor
+/node_modules
+/public/storage
+/storage/*.key
+.env
+.env.*
+Homestead.yaml
+Homestead.json
+npm-debug.log
+yarn-error.log
+.idea
+.phpunit.result.cache
+
+# Ignore Laravel generated files
+/public/hot
+/public/mix-manifest.json
+/storage/*.key
+/storage/app/public
+/storage/debugbar
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/testing
+/storage/framework/views
+/storage/logs
+/bootstrap/cache/*.php
+
+# Ignore server configs
+.php.ini
+.user.ini
+.htaccess
+web.config
+
+# Ignore backup and temporary directories
+/storage-old
+/public/storage-old
+/storage/temp
+/storage/tmp
+/storage/framework/temp
+/storage/framework/tmp
+/storage/dompdf/fonts/*.json
+/storage/dompdf/fonts/*.afm.json
+/storage/dompdf/fonts/*.ttf
+/storage/dompdf/fonts/*.ufm
+
+# Ignore other local assets
+/assets
+/frontend
+/backend
+/test.php
