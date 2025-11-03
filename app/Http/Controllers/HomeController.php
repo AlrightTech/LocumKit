@@ -168,7 +168,7 @@ class HomeController extends Controller
                 ]);
 
                 // Send notification to admins
-                $admins = \App\Models\User::where('user_acl_role_id', \App\Models\User::ROLE_ADMIN)->get();
+                $admins = \App\Models\User::where('user_acl_role_id', \App\Models\User::USER_ROLE_ADMIN)->get();
                 foreach ($admins as $admin) {
                     Mail::to($admin->email)->send(new \App\Mail\NewComplaintNotification($complaint));
                 }

@@ -24,7 +24,7 @@
         <p>Please take a moment to provide your feedback about this job completion. Your feedback helps maintain the quality of our platform and assists other users in making informed decisions.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{{ url('/feedback') }}?job_id={{ $job->id }}" 
+            <a href="{{ $feedbackUrl }}" 
                style="background-color: #2dc9ff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Provide Feedback
             </a>

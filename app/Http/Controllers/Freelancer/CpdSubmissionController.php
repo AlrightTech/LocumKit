@@ -198,7 +198,7 @@ class CpdSubmissionController extends Controller
      */
     private function notifyAdmins(CpdSubmission $submission)
     {
-        $admins = User::where('user_acl_role_id', User::ROLE_ADMIN)->get();
+        $admins = User::where('user_acl_role_id', User::USER_ROLE_ADMIN)->get();
         
         foreach ($admins as $admin) {
             Mail::to($admin->email)->send(new \App\Mail\CpdSubmissionNotification($submission));

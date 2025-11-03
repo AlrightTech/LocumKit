@@ -15,7 +15,7 @@ class ComplaintPolicy
      */
     public function viewAny(User $user)
     {
-        return $user->user_acl_role_id == User::ROLE_ADMIN;
+        return $user->user_acl_role_id == User::USER_ROLE_ADMIN;
     }
 
     /**
@@ -23,7 +23,7 @@ class ComplaintPolicy
      */
     public function view(User $user, Complaint $complaint)
     {
-        return $user->user_acl_role_id == User::ROLE_ADMIN;
+        return $user->user_acl_role_id == User::USER_ROLE_ADMIN;
     }
 
     /**
@@ -39,7 +39,7 @@ class ComplaintPolicy
      */
     public function update(User $user, Complaint $complaint)
     {
-        return $user->user_acl_role_id == User::ROLE_ADMIN;
+        return $user->user_acl_role_id == User::USER_ROLE_ADMIN;
     }
 
     /**
@@ -47,6 +47,6 @@ class ComplaintPolicy
      */
     public function delete(User $user, Complaint $complaint)
     {
-        return $user->user_acl_role_id == User::ROLE_ADMIN;
+        return $user->user_acl_role_id == User::USER_ROLE_ADMIN;
     }
 }

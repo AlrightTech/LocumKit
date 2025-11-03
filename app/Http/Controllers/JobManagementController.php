@@ -1301,9 +1301,9 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         // Check if user has permission to mark this job as completed
         $canMarkCompleted = false;
         
-        if ($user->user_acl_role_id == User::ROLE_EMPLOYER && $job->employer_id == $user->id) {
+        if ($user->user_acl_role_id == User::USER_ROLE_EMPLOYER && $job->employer_id == $user->id) {
             $canMarkCompleted = true;
-        } elseif ($user->user_acl_role_id == User::ROLE_LOCUM) {
+        } elseif ($user->user_acl_role_id == User::USER_ROLE_LOCUM) {
             // Check if freelancer is accepted for this job
             $jobAction = JobAction::where('job_post_id', $job_id)
                 ->where('freelancer_id', $user->id)
@@ -1362,7 +1362,7 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
     private function sendJobCompletedNotification($job, $user)
     {
         // Get admin users
-        $admins = User::where('user_acl_role_id', User::ROLE_ADMIN)->get();
+        $admins = User::where('user_acl_role_id', User::USER_ROLE_ADMIN)->get();
         
         foreach ($admins as $admin) {
             // Send notification to admin

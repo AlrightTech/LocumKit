@@ -37,12 +37,36 @@ class FeedbackRequestMail extends Mailable
     {
         $subject = 'Feedback Request - Job Completed';
         
+        // Generate encrypted feedback URL parameters
+        // user_id is the person GIVING feedback (the email recipient)
+        // user_type is their role type
+        $encrypted_job_id = encrypt($this->job->id);
+        
+        if ($this->recipientType == 'employer') {
+            // Email going to employer
+            $encrypted_user_id = encrypt($this->job->employer_id);
+        } else {
+            // Email going to freelancer - need to find freelancer_id from job actions
+            $freelancerAction = \App\Models\JobAction::where('job_post_id', $this->job->id)
+                ->where('action', \App\Models\JobAction::ACTION_ACCEPT)
+                ->first();
+            $encrypted_user_id = $freelancerAction ? encrypt($freelancerAction->freelancer_id) : encrypt($this->otherParty->id);
+        }
+        
+        $encrypted_user_type = encrypt($this->recipientType);
+        
+        $feedbackUrl = url('/feedback') . 
+                      "?job_id={$encrypted_job_id}" .
+                      "&user_id={$encrypted_user_id}" .
+                      "&user_type={$encrypted_user_type}";
+        
         return $this->subject($subject)
                     ->view('mail.feedback-request')
                     ->with([
                         'job' => $this->job,
                         'otherParty' => $this->otherParty,
                         'recipientType' => $this->recipientType,
+                        'feedbackUrl' => $feedbackUrl,
                     ]);
     }
 }

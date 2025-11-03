@@ -69,7 +69,7 @@ class ComplaintController extends Controller
         $this->authorize('view', $complaint);
         
         $complaint->load('assignedUser');
-        $admins = User::where('user_acl_role_id', User::ROLE_ADMIN)->get();
+        $admins = User::where('user_acl_role_id', User::USER_ROLE_ADMIN)->get();
         
         return view('admin.complaints.view', compact('complaint', 'admins'));
     }
@@ -156,7 +156,7 @@ class ComplaintController extends Controller
      */
     private function notifyAdmins(Complaint $complaint)
     {
-        $admins = User::where('user_acl_role_id', User::ROLE_ADMIN)->get();
+        $admins = User::where('user_acl_role_id', User::USER_ROLE_ADMIN)->get();
         
         foreach ($admins as $admin) {
             Mail::to($admin->email)->send(new \App\Mail\NewComplaintNotification($complaint));

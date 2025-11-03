@@ -33,8 +33,8 @@ class CronCpdReminder implements ShouldQueue
     public function handle()
     {
         // Get all freelancers (locums)
-        $freelancers = User::where('user_acl_role_id', User::ROLE_LOCUM)
-            ->where('active', User::STATUS_ACTIVE)
+        $freelancers = User::where('user_acl_role_id', User::USER_ROLE_LOCUM)
+            ->where('active', User::USER_STATUS_ACTIVE)
             ->get();
 
         foreach ($freelancers as $freelancer) {
