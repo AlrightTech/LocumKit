@@ -114,14 +114,38 @@
                                     </div>
                                     <div class="col-md-12">
                                         <div class="col-md-4">Job reference </div>
-                                        <div class="col-md-8"><input type="text" name="job_title" minlegnth="5" maxlength="50" class="form-control margin-bottom" @if (isset($job) && $job) value="{{ $job->job_title }}" @endif
-                                                   placeholder="Enter job title for your reference" required></div>
+                                        <div class="col-md-8">
+                                            <input 
+                                                type="text" 
+                                                name="job_title" 
+                                                minlength="5" 
+                                                maxlength="50" 
+                                                class="form-control margin-bottom" 
+                                                @if (isset($job) && $job) 
+                                                    value="{{ $job->job_title }}" 
+                                                @endif
+                                                placeholder="Enter job title for your reference" 
+                                                required
+                                            >
+                                        </div>
                                     </div>
                                     <div class="col-md-12"> 
                                         <div class="col-md-4">Date required</div>
                                         <div class="col-md-8">
-                                            <input type="text" name="job_date" class="form-control margin-bottom req-datepicker" @if (isset($job) && $job) value="{{ get_date_with_default_format($job->job_date) }}" @endif
-                                                   placeholder="Enter date" required>
+                                            <input 
+                                                type="text" 
+                                                name="job_date" 
+                                                class="form-control margin-bottom req-datepicker" 
+                                                pattern="\d{2}/\d{2}/\d{4}" 
+                                                @if (isset($job) && $job) 
+                                                    value="{{ get_date_with_default_format($job->job_date) }}" 
+                                                @endif
+                                                placeholder="dd/mm/yyyy" 
+                                                title="Date must be in dd/mm/yyyy format (e.g., 26/02/2024)" 
+                                                required
+                                                readonly
+                                            >
+                                            <small class="text-muted">Click to select date (Format: dd/mm/yyyy)</small>
                                         </div>
                                     </div>
 
@@ -129,32 +153,20 @@
                                         <div class="col-md-4">Rate offered(£)</div>
                                         <div class="col-md-8">
                                             <input 
-                                                type="text" 
+                                                type="number" 
                                                 name="job_rate" 
-                                                maxlength="6" 
-                                                class="form-control margin-bottom numbersOnly" 
+                                                min="1" 
+                                                max="999999" 
+                                                step="0.01" 
+                                                class="form-control margin-bottom" 
                                                 @if (isset($job) && $job) 
                                                     value="{{ $job->job_rate }}" 
                                                 @endif
                                                 placeholder="Enter job rate in (£)" 
                                                 required 
-                                                oninput="if (this.value.length > 6) this.value = this.value.slice(0, 6); validateJobRate(this)" 
                                             />
+                                            <small class="text-muted">Enter rate between £1 and £999,999</small>
                                         </div>
-                                        
-                                        
-                                        <script>
-                                            function validateJobRate(input) {
-                                                const min = 0;
-                                                const max = 9999999;
-                                        
-                                                if (input.value < min) {
-                                                    input.value = min;
-                                                } else if (input.value > max) {
-                                                    input.value = max;
-                                                }
-                                            }
-                                        </script>
 
 
                                     </div>
@@ -318,11 +330,16 @@
             }
             $(".req-datepicker").datepicker({
                 minDate: min_date,
+                maxDate: '+3y',
+                defaultDate: min_date,
                 changeMonth: true,
                 changeYear: true,
                 beforeShowDay: DisableSpecificDatesReq,
                 dateFormat: "dd/mm/yy",
-                yearRange: currentYear + ':' + rangeYear,
+                yearRange: 'c:c+3',
+                onSelect: function(dateText) {
+                    $(this).val(dateText);
+                }
             });
         })();
 
@@ -339,10 +356,15 @@
 
                 $(this).datepicker({
                     minDate: min_date,
+                    maxDate: '+3y',
+                    defaultDate: min_date,
                     changeMonth: true,
                     changeYear: true,
                     dateFormat: "dd/mm/yy",
-                    yearRange: currentYear + ':' + rangeYear,
+                    yearRange: 'c:c+3',
+                    onSelect: function(dateText) {
+                        $(this).val(dateText);
+                    }
                 });
             });
         }

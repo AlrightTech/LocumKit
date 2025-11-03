@@ -143,6 +143,13 @@ Route::get('/news/{slug}', [HomeController::class, 'showNewsPost'])->name('show-
 Route::get("freelancer/single-job/{id}", [JobManagementController::class, 'viewJobFreelancer'])->name('single-job')->middleware('auth');
 Auth::routes(['verify' => true]);
 
+// Handle GET logout requests (redirect to home and trigger logout via POST)
+Route::get('/logout', function() {
+    if (Auth::check()) {
+        return view('auth.logout-confirmation');
+    }
+    return redirect('/');
+})->middleware('auth')->name('logout.get');
 
 // Route::group(["middleware" => ["auth", "verified", "can:is_freelancer"], "prefix" => "freelancer", "as" => "freelancer."], function () {
 Route::group(["middleware" => ["auth", "verified", "check.freelancer"], "prefix" => "freelancer", "as" => "freelancer."], function () {

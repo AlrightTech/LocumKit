@@ -159,17 +159,20 @@ class JobsController extends Controller
     public function saveManageJob(Request $request)
     {
         $request->validate([
-            "job_store" => ["required", "integer",],
+            "job_store" => ["required", "integer"],
             "job_title" => ["required", "string", "max:255"],
- "job_date" => [
-        "required",
-        "regex:/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/"
-    ],
-            "job_rate" => ["required",  "min:1"],
+            "job_date" => [
+                "required",
+                "regex:/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/"
+            ],
+            "job_rate" => ["required", "numeric", "min:1"],
             "set_timeline" => ["nullable"],
             "job_date_new" => ["required_if:set_timeline,1", "array"],
+            "job_date_new.*" => ["required_if:set_timeline,1", "date_format:Y-m-d"],
             "job_rate_new" => ["required_if:set_timeline,1", "array"],
+            "job_rate_new.*" => ["required_if:set_timeline,1", "numeric", "min:0"],
             "job_timeline_hrs" => ["required_if:set_timeline,1", "array"],
+            "job_timeline_hrs.*" => ["required_if:set_timeline,1", "integer", "min:1", "max:24"],
             "job_timeline_time" => ["required_if:set_timeline,1", "array"],
         ]);
 
@@ -212,8 +215,8 @@ class JobsController extends Controller
             "job_status" => 1,
         ]);
         
-       $admin = User::first();
-
+        // Notify admin about new job post
+        $admin = User::where('user_acl_role_id', 1)->first();
         if ($admin) {
             $admin->notify(new NotifyAdminNotification($job_post));
         }
@@ -222,7 +225,8 @@ class JobsController extends Controller
             $job_timelines = array();
             $job_timeline_time = $request->input("job_timeline_time");
             foreach ($job_date_new as $key => $timeline_date) {
-                $date = Carbon::createFromFormat(get_default_date_format(),  $timeline_date);
+                // HTML5 date input returns Y-m-d format (e.g., 2025-11-03)
+                $date = Carbon::createFromFormat('Y-m-d', $timeline_date);
                 array_push($job_timelines, [
                     "job_post_id" => $job_post->id,
                     "job_date_new" => $date->format("Y-m-d"),
@@ -253,11 +257,14 @@ class JobsController extends Controller
             "job_store" => ["required", "integer"],
             "job_title" => ["required", "string", "max:255"],
             "job_date" => ["required", "string", "size:10"],
-            "job_rate" => ["required", "numeric"],
+            "job_rate" => ["required", "numeric", "min:1"],
             "set_timeline" => ["nullable"],
             "job_date_new" => ["required_if:set_timeline,1", "array"],
+            "job_date_new.*" => ["required_if:set_timeline,1", "date_format:Y-m-d"],
             "job_rate_new" => ["required_if:set_timeline,1", "array"],
+            "job_rate_new.*" => ["required_if:set_timeline,1", "numeric", "min:0"],
             "job_timeline_hrs" => ["required_if:set_timeline,1", "array"],
+            "job_timeline_hrs.*" => ["required_if:set_timeline,1", "integer", "min:1", "max:24"],
             "job_timeline_time" => ["required_if:set_timeline,1", "array"],
         ]);
         $job_store = $request->input("job_store");
@@ -303,7 +310,8 @@ class JobsController extends Controller
         if ($set_timeline && $set_timeline == 1) {
             $job_timeline_time = $request->input("job_timeline_time");
             foreach ($job_date_new as $key => $timeline_date) {
-                $date = Carbon::createFromFormat(get_default_date_format(),  $timeline_date);
+                // HTML5 date input returns Y-m-d format (e.g., 2025-11-03)
+                $date = Carbon::createFromFormat('Y-m-d', $timeline_date);
                 array_push($job_timelines, [
                     "job_post_id" => $job->id,
                     "job_date_new" => $date->format("Y-m-d"),
@@ -316,7 +324,9 @@ class JobsController extends Controller
                 ]);
             }
         }
-        JobPostTimeline::insert($job_timelines);
+        if (!empty($job_timelines)) {
+            JobPostTimeline::insert($job_timelines);
+        }
 
         return redirect("/employer/job-search/{$job->id}")->with("success", "Please select the locum(s) you wish to invite to your booking");
     }

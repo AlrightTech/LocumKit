@@ -375,6 +375,9 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
                 $mail_subject = 'Locumkit job notification: Date : ' . get_date_with_default_format($job->job_date) . ' / Location : ' . $job_store_address . ' / Rate : ' . set_amount_format($job->job_rate);
 
                 Mail::to($freelancer->email)->send(new FreelancerJobInvitationMail($mail_subject, $mail_body));
+                
+                // Add delay to prevent hitting Mailtrap rate limit (max 2 emails per second)
+                usleep(600000); // 0.6 second delay
 
                 $this->notifyController->notification($job->id, $message = "Job Ref:" . $job->id . ', Date:' . get_date_with_default_format($job->job_date) . ', Location:' . $job_store_address . ', Rate:' . set_amount_format($job->job_rate) . ', Open this message to view full details.', $title = 'Job invitation', $freelancer->id, $types = "acceptJob");
                 $this->jobsmsController->jobInvitationFreeSms($freelancer, $job, $accept_href_link);
@@ -481,6 +484,9 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
                 $mail_subject = 'Locumkit job notification: Date : ' . get_date_with_default_format($job->job_date) . ' / Location : ' . $job_store_address . ' / Rate : ' . set_amount_format($job->job_rate);
 
                 Mail::to($freelancer->email)->send(new FreelancerJobInvitationMail($mail_subject, $mail_body));
+                
+                // Add delay to prevent hitting Mailtrap rate limit (max 2 emails per second)
+                usleep(600000); // 0.6 second delay
 
                 $this->jobsmsController->jobInvitationFreeSms($freelancer, $job, $accept_href_link);
             }
@@ -552,6 +558,9 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         $admin_mail_subject = 'Locumkit job notification: New job posting : #' . $job->id;
 
         Mail::to(config('app.admin_mail'))->send(new FreelancerJobInvitationMail($admin_mail_subject, $admin_mail_body));
+        
+        // Add delay to prevent hitting Mailtrap rate limit
+        usleep(600000); // 0.6 second delay
 
         Mail::to(Auth::user()->email)->send(new FreelancerJobInvitationMail($employer_mail_subject, $employer_mail_body));
 
