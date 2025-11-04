@@ -11,16 +11,39 @@ use App\Http\Resources\EmployerJobPostResource;
 use App\Http\Resources\FreelancerPrivateJobResource;
 use App\Http\Resources\JobPostResource;
 use App\Models\BlockUser;
+use App\Models\EmployerStoreList;
+use App\Models\FinanceEmployer;
 use App\Models\FinanceExpense;
 use App\Models\FinanceIncome;
+use App\Models\FinancialYear;
+use App\Models\FreelancerPrivateFinance;
+use App\Models\FreelancerPrivateJob;
+use App\Models\Invoice;
 use App\Models\JobAction;
+use App\Models\JobCancelation;
+use App\Models\JobFeedback;
+use App\Models\JobInvitedUser;
+use App\Models\JobOnDay;
 use App\Models\JobPost;
+use App\Models\JobPostTimeline;
+use App\Models\LastLoginUser;
+use App\Models\Leavers;
+use App\Models\LocumlogbookFollowupProcedure;
+use App\Models\LocumlogbookPracticeInfo;
+use App\Models\LocumlogbookReferralPathways;
+use App\Models\PrivateUser;
+use App\Models\PrivateUserJobAction;
+use App\Models\SendNotification;
 use App\Models\SiteTown;
+use App\Models\Supplier;
 use App\Models\User;
 use App\Models\UserAclProfession;
 use App\Models\UserAclRole;
 use App\Models\UserAnswer;
+use App\Models\UserBankDetail;
 use App\Models\UserExtraInfo;
+use App\Models\UserPackageDetail;
+use App\Models\UserPaymentInfo;
 use App\Models\UsersWorkCalender;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -441,10 +464,103 @@ class UserController extends Controller
         $user_email = isset($user_data['email']) ? $user_data['email'] : '';
         $user_name = isset($user_data['username']) ? $user_data['username'] : '';
         $reason = isset($user_data['uservalue']) ? $user_data['uservalue'] : '';
-        //get user email and user name by user id
-        User::where("id", $uid)->update(["active" => '5']);
-        $user_data = "sucess";
-        return $user_data;
+        
+        if (!$uid) {
+            return "failed";
+        }
+        
+        // Get user details
+        $user = User::find($uid);
+        if (!$user) {
+            return "failed";
+        }
+        
+        // Save to leavers table for record keeping before deletion
+        $leavers = new Leavers();
+        $leavers->lid = $uid;
+        $leavers->uid = $uid;
+        $leavers->user_email = $user_email ?: $user->email;
+        $leavers->user_name = $user_name ?: ($user->firstname . ' ' . $user->lastname);
+        $leavers->user_reason_to_leave = $reason ?: 'Not mentioned';
+        $leavers->save();
+        
+        // Permanently delete all related data
+        try {
+            $isFreelancer = $user->user_acl_role_id == User::USER_ROLE_LOCUM;
+            $isEmployer = $user->user_acl_role_id == User::USER_ROLE_EMPLOYER;
+            
+            // Delete common user data
+            UserAnswer::where('user_id', $uid)->delete();
+            UserExtraInfo::where('user_id', $uid)->delete();
+            UserBankDetail::where('user_id', $uid)->delete();
+            UsersWorkCalender::where('user_id', $uid)->delete();
+            UserPackageDetail::where('user_id', $uid)->delete();
+            UserPaymentInfo::where('user_id', $uid)->delete();
+            FinancialYear::where('user_id', $uid)->delete();
+            LastLoginUser::where('user_id', $uid)->delete();
+            JobCancelation::where('user_id', $uid)->delete();
+            SendNotification::where('recipient_id', $uid)->delete();
+            
+            // Delete feedback
+            JobFeedback::where('freelancer_id', $uid)->delete();
+            JobFeedback::where('employer_id', $uid)->delete();
+            
+            // Delete block user records
+            BlockUser::where('freelancer_id', $uid)->delete();
+            BlockUser::where('employer_id', $uid)->delete();
+            
+            if ($isFreelancer) {
+                // Delete freelancer-specific data
+                JobAction::where('freelancer_id', $uid)->delete();
+                FreelancerPrivateJob::where('freelancer_id', $uid)->delete();
+                FreelancerPrivateFinance::where('freelancer_id', $uid)->delete();
+                FinanceIncome::where('freelancer_id', $uid)->delete();
+                FinanceExpense::where('freelancer_id', $uid)->delete();
+                JobInvitedUser::where('invited_user_id', $uid)->where('invited_user_type', 'App\Models\User')->delete();
+                JobOnDay::where('freelancer_id', $uid)->delete();
+                LocumlogbookFollowupProcedure::where('user_id', $uid)->delete();
+                LocumlogbookPracticeInfo::where('user_id', $uid)->delete();
+                LocumlogbookReferralPathways::where('user_id', $uid)->delete();
+            }
+            
+            if ($isEmployer) {
+                // Delete employer-specific data
+                EmployerStoreList::where('employer_id', $uid)->delete();
+                
+                // Get job IDs for cascade deletion
+                $jobIds = JobPost::where('employer_id', $uid)->pluck('id');
+                JobAction::whereIn('job_id', $jobIds)->delete();
+                JobInvitedUser::whereIn('job_id', $jobIds)->delete();
+                JobOnDay::whereIn('job_id', $jobIds)->delete();
+                JobPostTimeline::whereIn('job_id', $jobIds)->delete();
+                JobFeedback::whereIn('job_id', $jobIds)->delete();
+                JobPost::where('employer_id', $uid)->delete();
+                
+                // Delete private users
+                $privateUserIds = PrivateUser::where('employer_id', $uid)->pluck('id');
+                PrivateUserJobAction::whereIn('private_user_id', $privateUserIds)->delete();
+                PrivateUser::where('employer_id', $uid)->delete();
+                
+                FinanceEmployer::where('employer_id', $uid)->delete();
+            }
+            
+            // Delete invoices and related finance records
+            $invoiceIds = Invoice::where('user_id', $uid)->pluck('id');
+            FinanceIncome::whereIn('invoice_id', $invoiceIds)->delete();
+            Invoice::where('user_id', $uid)->delete();
+            
+            // Delete suppliers
+            Supplier::where('created_by_user_id', $uid)->delete();
+            
+            // Finally, delete the user
+            User::where('id', $uid)->delete();
+            
+            return "success";
+            
+        } catch (\Exception $e) {
+            \Log::error('API Profile deletion failed: ' . $e->getMessage());
+            return "failed";
+        }
     }
 
     public function searchTown(Request $request)

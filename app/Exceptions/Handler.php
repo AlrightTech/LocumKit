@@ -53,6 +53,14 @@ class Handler extends ExceptionHandler
             if ($request->is('api/*')) {
                 return response()->error($e->getMessage(), 500);
             }
+            
+            // Handle CSRF token mismatch (419 errors)
+            if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+                return redirect()
+                    ->back()
+                    ->withInput($request->except('password', 'password_confirmation'))
+                    ->with('error', 'Your session has expired. Please try again.');
+            }
         });
     }
 }

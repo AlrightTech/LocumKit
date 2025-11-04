@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\TransactionExport;
 use App\Helpers\FinanceHelper;
 use App\Mail\IncomeInvoiceMail;
+use App\Models\BlockUser;
 use App\Models\ExpenseType;
 use App\Models\Finance;
 use App\Models\FinanceExpense;
@@ -17,14 +18,22 @@ use App\Models\Invoice;
 use App\Models\JobAction;
 use App\Models\JobCancelation;
 use App\Models\JobFeedback;
+use App\Models\JobInvitedUser;
+use App\Models\JobOnDay;
 use App\Models\JobPost;
+use App\Models\LastLoginUser;
 use App\Models\Leavers;
+use App\Models\LocumlogbookFollowupProcedure;
+use App\Models\LocumlogbookPracticeInfo;
+use App\Models\LocumlogbookReferralPathways;
 use App\Models\SendNotification;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\UserAnswer;
 use App\Models\UserBankDetail;
 use App\Models\UserExtraInfo;
+use App\Models\UserPackageDetail;
+use App\Models\UserPaymentInfo;
 use App\Models\UsersWorkCalender;
 use App\Notifications\DeleteUserNotification;
 use Carbon\Carbon;
@@ -227,27 +236,120 @@ class FreelancerController extends Controller
 
     public function deleteProfile(Request $request)
     {
+        $userId = Auth::user()->id;
         $reasons = $request->reason;
 
-        foreach ($reasons as $index => $reason) {
-            $formattedReasons[] = ($index + 1) . '. ' . $reason;
+        // Format reasons for record keeping
+        $formattedReasons = [];
+        if ($reasons) {
+            foreach ($reasons as $index => $reason) {
+                $formattedReasons[] = ($index + 1) . '. ' . $reason;
+            }
         }
         $result = implode(PHP_EOL, $formattedReasons);
 
+        // Save to leavers table for record keeping before deletion
         $leavers = new Leavers();
-        $leavers->lid = Auth::user()->id;
-        $leavers->uid = Auth::user()->id;
+        $leavers->lid = $userId;
+        $leavers->uid = $userId;
         $leavers->user_email = Auth::user()->email;
-        $leavers->user_name = Auth::user()->firstname ?? ' ' . '' . Auth::user()->lastname;
+        $leavers->user_name = Auth::user()->firstname . ' ' . Auth::user()->lastname;
         $leavers->user_reason_to_leave = $result;
         $leavers->save();
-        $user = User::where('user_acl_role_id', 1)->first();
         
-        $user->notify(new DeleteUserNotification());
-        User::where("id", Auth::user()->id)->update(["active" => '5']);
-        Session::flush();
-        Auth::logout();
-        return redirect("/")->with("success", "Your account has been deleted");
+        // Notify admin about user deletion
+        $adminUser = User::where('user_acl_role_id', 1)->first();
+        if ($adminUser) {
+            $adminUser->notify(new DeleteUserNotification());
+        }
+
+        // Permanently delete all related data
+        try {
+            // Delete user answers
+            UserAnswer::where('user_id', $userId)->delete();
+            
+            // Delete user extra info
+            UserExtraInfo::where('user_id', $userId)->delete();
+            
+            // Delete user bank details
+            UserBankDetail::where('user_id', $userId)->delete();
+            
+            // Delete user work calendar
+            UsersWorkCalender::where('user_id', $userId)->delete();
+            
+            // Delete user package details
+            UserPackageDetail::where('user_id', $userId)->delete();
+            
+            // Delete user payment info
+            UserPaymentInfo::where('user_id', $userId)->delete();
+            
+            // Delete financial year
+            FinancialYear::where('user_id', $userId)->delete();
+            
+            // Delete last login records
+            LastLoginUser::where('user_id', $userId)->delete();
+            
+            // Delete job actions (applications)
+            JobAction::where('freelancer_id', $userId)->delete();
+            
+            // Delete job feedback (both given and received)
+            JobFeedback::where('freelancer_id', $userId)->delete();
+            JobFeedback::where('employer_id', $userId)->delete();
+            
+            // Delete job cancellations
+            JobCancelation::where('user_id', $userId)->delete();
+            
+            // Delete private jobs
+            FreelancerPrivateJob::where('freelancer_id', $userId)->delete();
+            
+            // Delete private finances
+            FreelancerPrivateFinance::where('freelancer_id', $userId)->delete();
+            
+            // Delete finance income records
+            $invoiceIds = Invoice::where('user_id', $userId)->pluck('id');
+            FinanceIncome::whereIn('invoice_id', $invoiceIds)->delete();
+            FinanceIncome::where('freelancer_id', $userId)->delete();
+            
+            // Delete finance expense records
+            FinanceExpense::where('freelancer_id', $userId)->delete();
+            
+            // Delete invoices
+            Invoice::where('user_id', $userId)->delete();
+            
+            // Delete suppliers
+            Supplier::where('created_by_user_id', $userId)->delete();
+            
+            // Delete block user records (both as freelancer and employer)
+            BlockUser::where('freelancer_id', $userId)->delete();
+            BlockUser::where('employer_id', $userId)->delete();
+            
+            // Delete job invitations
+            JobInvitedUser::where('invited_user_id', $userId)->where('invited_user_type', 'App\Models\User')->delete();
+            
+            // Delete job on day records
+            JobOnDay::where('freelancer_id', $userId)->delete();
+            
+            // Delete locum logbook records
+            LocumlogbookFollowupProcedure::where('user_id', $userId)->delete();
+            LocumlogbookPracticeInfo::where('user_id', $userId)->delete();
+            LocumlogbookReferralPathways::where('user_id', $userId)->delete();
+            
+            // Delete notifications (recipient_id is the column name)
+            SendNotification::where('recipient_id', $userId)->delete();
+            
+            // Finally, delete the user
+            User::where('id', $userId)->delete();
+            
+            Session::flush();
+            Auth::logout();
+            
+            return redirect("/")->with("success", "Your account has been permanently deleted");
+            
+        } catch (Exception $e) {
+            // Log the error and return with error message
+            \Log::error('Profile deletion failed: ' . $e->getMessage());
+            return redirect()->back()->with("error", "Failed to delete profile. Please contact support.");
+        }
     }
 
     public function editQuestions()
