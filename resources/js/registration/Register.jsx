@@ -28,6 +28,7 @@ function Register() {
 
     useEffect(() => {
         if (ERROR_MESSAGES_BAG && typeof ERROR_MESSAGES_BAG == "object" && Object.keys(ERROR_MESSAGES_BAG).length > 0) {
+           
             let newErrors = {};
             Object.keys(ERROR_MESSAGES_BAG).forEach((name) => {
                 let arr = ERROR_MESSAGES_BAG[name];
@@ -50,6 +51,10 @@ function Register() {
                 setStep(2); // Default to step 2 if no step is stored
             }
         }
+        console.log("errors", errors);
+        console.log("step", step);
+        console.log("user", user);
+        console.log("ERROR_MESSAGES_BAG", ERROR_MESSAGES_BAG);
     }, []);
 
     return (

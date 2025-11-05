@@ -167,6 +167,7 @@
 @endsection
 
 @push('scripts')
+
     <script>
         const questions = @json($questions ?? []);
         const roles = @json($roles ?? []);
@@ -194,5 +195,6 @@
     </script>
 
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    <script src="{{ mix('build/register.js') }}"></script>
+   <!-- mix run app.js and build output is in public/build/register.js -->
+   <script src="{{ mix('build/register.js') }}"></script>
 @endpush
