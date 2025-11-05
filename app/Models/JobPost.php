@@ -142,6 +142,13 @@ class JobPost extends Model
                     "type" => "web"
                 ];
             }
+            // Freelancer was deleted - show clear message
+            return [
+                "id" => "<span style='color: #999; font-style: italic;'>Deleted</span>",
+                "name" => "<span style='color: #d9534f; font-style: italic;'>⚠️ Locum No Longer Available</span>",
+                "email" => "N/A",
+                "type" => "deleted"
+            ];
         } else {
             $private_job_action = $this->private_user_job_actions->filter(function ($job_action) {
                 return in_array($job_action->status, [PrivateUserJobAction::ACTION_ACCEPT, PrivateUserJobAction::ACTION_CANCEL]);
@@ -157,6 +164,13 @@ class JobPost extends Model
                         "type" => "private"
                     ];
                 }
+                // Private user was deleted
+                return [
+                    "id" => "<span style='color: #999; font-style: italic;'>Deleted</span>",
+                    "name" => "<span style='color: #d9534f; font-style: italic;'>⚠️ Locum No Longer Available</span>",
+                    "email" => "N/A",
+                    "type" => "deleted"
+                ];
             }
         }
         return [

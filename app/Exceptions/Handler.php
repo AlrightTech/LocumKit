@@ -49,7 +49,7 @@ class Handler extends ExceptionHandler
             //
         });
 
-        $this->renderable(function (Exception $e, Request $request) {
+        $this->renderable(function (Throwable $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->error($e->getMessage(), 500);
             }

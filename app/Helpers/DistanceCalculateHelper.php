@@ -23,13 +23,18 @@ class DistanceCalculateHelper
                 $result = file_get_contents($url);
                 $decodedResult = json_decode($result, true);
 
-
-                if (count($decodedResult["features"]) == 0) {
+                // Check if the API returned valid data
+                if (!$decodedResult || !isset($decodedResult["features"]) || count($decodedResult["features"]) == 0) {
                     throw new \Exception("Mapbox Geocoding API could not find coordinates for zip code $zip and address $address");
                 }
 
                 // Cache the response forever
                 Cache::forever($cacheKey, $decodedResult);
+            }
+
+            // Safely access the coordinates with null checks
+            if (!isset($decodedResult["features"][0]["center"][0]) || !isset($decodedResult["features"][0]["center"][1])) {
+                throw new \Exception("Invalid coordinate data returned from Mapbox API");
             }
 
             $longitude = $decodedResult["features"][0]["center"][0];

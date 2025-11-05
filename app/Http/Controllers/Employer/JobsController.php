@@ -189,13 +189,22 @@ class JobsController extends Controller
         //get job_start_time from employer selected store
         $store = EmployerStoreList::where("id", $job_store)->where("employer_id", Auth::user()->id)->select("id", "store_start_time", "store_address", "store_region", "store_zip")->first();
         if ($store == null) {
-            return back()->with("error", "Select a store or add new store from Manage Store section");
+            return back()->with("error", "The selected store could not be found. Please select a valid store or add a new store from the Manage Store section.");
         }
+        
+        // Safely decode store start time
         $store_start_time = json_decode($store->store_start_time, true);
+        
+        // Check if json_decode returned a valid array
+        if (!is_array($store_start_time)) {
+            return back()->with("error", "Store configuration is incomplete. Please update your store's opening times in the Manage Store section before posting a job.");
+        }
+        
+        // Get start time for the job date's day of week
         if (isset($store_start_time[$job_date->format("l")])) {
             $job_start_time = $store_start_time[$job_date->format("l")];
         } else {
-            $job_start_time = "09:00";
+            $job_start_time = "09:00"; // Default fallback time
         }
 
         //create new job post

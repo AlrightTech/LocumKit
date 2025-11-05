@@ -328,10 +328,18 @@
     'tw' => 'fa-twitter-square', 
                         ];
 
-                        $socialLinks = coreConfigData::whereIn('identifier', array_keys($socialIcons))->pluck(
-                            'value',
-                            'identifier',
-                        );
+                        // Safely fetch social links with error handling
+                        try {
+                            $socialLinks = coreConfigData::whereIn('identifier', array_keys($socialIcons))->pluck(
+                                'value',
+                                'identifier',
+                            );
+                            // Ensure it's always an array-like structure
+                            $socialLinks = $socialLinks ?? collect([]);
+                        } catch (\Exception $e) {
+                            // If database query fails, default to empty collection
+                            $socialLinks = collect([]);
+                        }
                     @endphp
                     <div class="col-md-3 col-sm-3 col-xs-12 fooc4">
                         <h5>Contact Us</h5>

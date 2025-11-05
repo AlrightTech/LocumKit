@@ -265,6 +265,68 @@ class FreelancerController extends Controller
 
         // Permanently delete all related data
         try {
+            $locumName = Auth::user()->firstname . ' ' . Auth::user()->lastname;
+            
+            // First, handle jobs associated with this freelancer
+            // Find all job IDs where this freelancer had applied/accepted
+            $jobIds = JobAction::where('freelancer_id', $userId)
+                ->whereIn('action', [
+                    JobAction::ACTION_ACCEPT,
+                    JobAction::ACTION_DONE,
+                    JobAction::ACTION_APPLY,
+                    JobAction::ACTION_FREEZE
+                ])
+                ->pluck('job_post_id')
+                ->unique();
+            
+            // Get the jobs before deleting them to notify employers
+            if ($jobIds->isNotEmpty()) {
+                $affectedJobs = JobPost::whereIn('id', $jobIds)
+                    ->whereIn('job_status', [
+                        JobPost::JOB_STATUS_OPEN_WAITING,
+                        JobPost::JOB_STATUS_ACCEPTED,
+                        JobPost::JOB_STATUS_FREEZED,
+                        JobPost::JOB_STATUS_DONE_COMPLETED
+                    ])
+                    ->with('employer')
+                    ->get();
+                
+                // Notify each affected employer
+                foreach ($affectedJobs as $job) {
+                    if ($job->employer) {
+                        $statusName = match($job->job_status) {
+                            JobPost::JOB_STATUS_ACCEPTED => 'ACCEPTED',
+                            JobPost::JOB_STATUS_FREEZED => 'FROZEN',
+                            JobPost::JOB_STATUS_DONE_COMPLETED => 'COMPLETED',
+                            default => 'WAITING'
+                        };
+                        
+                        try {
+                            $job->employer->notify(
+                                new \App\Notifications\LocumAccountDeletedNotification(
+                                    $locumName,
+                                    $job->job_title,
+                                    $job->job_date->format('d/m/Y'),
+                                    $statusName
+                                )
+                            );
+                        } catch (\Exception $e) {
+                            \Log::warning('Could not notify employer: ' . $e->getMessage());
+                        }
+                    }
+                }
+                
+                // Update these jobs to DELETED status
+                JobPost::whereIn('id', $jobIds)
+                    ->whereIn('job_status', [
+                        JobPost::JOB_STATUS_OPEN_WAITING,
+                        JobPost::JOB_STATUS_ACCEPTED,
+                        JobPost::JOB_STATUS_FREEZED,
+                        JobPost::JOB_STATUS_DONE_COMPLETED
+                    ])
+                    ->update(['job_status' => JobPost::JOB_STATUS_DELETED]);
+            }
+            
             // Delete user answers
             UserAnswer::where('user_id', $userId)->delete();
             

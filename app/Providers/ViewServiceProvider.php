@@ -30,21 +30,42 @@ class ViewServiceProvider extends ServiceProvider
     {
         $latest_blogs = array();
         $available_tags = array();
+        
         if (!app()->runningInConsole()) {
-            $latest_blogs = Blog::query()->latest()->limit(3)->get();
-            $available_tags = SiteTown::where("town", "!=", "")->select("town")->pluck("town")->toArray();
+            try {
+                // Check if database tables exist before querying
+                if (Schema::hasTable('blogs')) {
+                    $latest_blogs = Blog::query()->latest()->limit(3)->get();
+                }
+                if (Schema::hasTable('site_towns')) {
+                    $available_tags = SiteTown::where("town", "!=", "")->select("town")->pluck("town")->toArray();
+                }
+            } catch (\Exception $e) {
+                // Log the error but don't break the application
+                \Illuminate\Support\Facades\Log::warning('ViewServiceProvider boot error: ' . $e->getMessage());
+            }
         }
+        
         View::composer(['layouts.app', 'layouts.user_profile_app'], function (ViewHelper $view) use ($latest_blogs) {
-            $view->with('latest_blogs', $latest_blogs);
+            // Ensure $latest_blogs is always an array or collection
+            $view->with('latest_blogs', $latest_blogs ?? []);
         });
+        
         View::composer(['auth.register', 'employer.edit-profile', 'employer.manage-store', 'freelancer.edit-profile'], function (ViewHelper $view) use ($available_tags) {
-            $view->with('site_towns_available_tags', $available_tags);
+            // Ensure $available_tags is always an array
+            $view->with('site_towns_available_tags', $available_tags ?? []);
         });
         
         // Ensure $errors is always available in all views
         View::composer('*', function (ViewHelper $view) {
-            if (!isset($view->errors)) {
-                $view->with('errors', session()->get('errors', new \Illuminate\Support\ViewErrorBag()));
+            try {
+                $errors = $view->getData()['errors'] ?? null;
+                if (!$errors || !is_object($errors)) {
+                    $view->with('errors', session()->get('errors', new \Illuminate\Support\ViewErrorBag()));
+                }
+            } catch (\Exception $e) {
+                // If anything fails, just set empty error bag
+                $view->with('errors', new \Illuminate\Support\ViewErrorBag());
             }
         });
     }

@@ -168,15 +168,15 @@
 
 @push('scripts')
     <script>
-        const questions = @json($questions);
-        const roles = @json($roles);
-        const professions = @json($professions);
-        const GOOGLE_RECAPTCHA_SITE_KEY = `{{ config('app.google_recaptcha_site_key') }}`;
-        const AVAILABLE_TAGS = @json($site_towns_available_tags);
+        const questions = @json($questions ?? []);
+        const roles = @json($roles ?? []);
+        const professions = @json($professions ?? []);
+        const GOOGLE_RECAPTCHA_SITE_KEY = `{{ config('app.google_recaptcha_site_key') ?? '' }}`;
+        const AVAILABLE_TAGS = @json($site_towns_available_tags ?? []);
         const REGISTRATION_VALIDATION_URI = `{{ url('/ajax/registration-info-check') }}`;
         const CSRF_TOKEN = `{{ csrf_token() }}`;
         const REGISTER_FORM_URI = `{{ url('/register') }}`;
-        const ERROR_MESSAGES_BAG = @json(isset($errors) ? $errors->jsonSerialize() : []);
+        const ERROR_MESSAGES_BAG = @json((isset($errors) && is_object($errors) && method_exists($errors, 'jsonSerialize')) ? $errors->jsonSerialize() : []);
     </script>
 
     <script>

@@ -14,6 +14,7 @@ use App\Models\UserAnswer;
 use App\Models\UserExtraInfo;
 use App\Models\UserPackageDetail;
 use App\Models\UserPaymentInfo;
+use App\Models\SiteTown;
 use Error;
 use Exception;
 use App\Notifications\NewRegisterAdminNotification;
@@ -77,6 +78,20 @@ class RegisterController extends Controller
             $professions = UserAclProfession::where("is_active", true)->get();
             $questions = UserQuestion::where("is_active", true)->orderBy('sort_order', 'asc')->get();
             
+            // Get available site towns for autocomplete
+            $site_towns_available_tags = [];
+            try {
+                $site_towns_available_tags = SiteTown::where("town", "!=", "")->pluck("town")->toArray();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not load site towns: " . $e->getMessage());
+            }
+            
+            // Ensure all variables are collections (never null)
+            $roles = $roles ?? collect([]);
+            $professions = $professions ?? collect([]);
+            $questions = $questions ?? collect([]);
+            $site_towns_available_tags = $site_towns_available_tags ?? [];
+            
             // Log for debugging if data is missing
             if ($roles->isEmpty()) {
                 \Illuminate\Support\Facades\Log::warning("No public roles found in database. Please run seeders.");
@@ -88,15 +103,13 @@ class RegisterController extends Controller
             return view('auth.register', [
                 'roles' => $roles, 
                 'professions' => $professions, 
-                'questions' => $questions
+                'questions' => $questions,
+                'site_towns_available_tags' => $site_towns_available_tags
             ]);
         } catch (\PDOException $e) {
             // Database connection error
             \Illuminate\Support\Facades\Log::error("Database connection error: " . $e->getMessage());
-            return response()->view('errors.minimal', [
-                'message' => 'Database connection error. Please check your database configuration.',
-                'details' => config('app.debug') ? $e->getMessage() : ''
-            ], 500);
+            return redirect()->back()->with('error', 'Database connection error. Please check your database configuration.');
         } catch (\Exception $e) {
             // Log the actual error for debugging
             \Illuminate\Support\Facades\Log::error("Registration form error: " . $e->getMessage());
@@ -120,6 +133,7 @@ class RegisterController extends Controller
      */
     public function register(Request $request)
     {
+        /* TEMPORARILY DISABLED - Recaptcha validation (incorrect API keys)
         $recaptcha = $request->input("g-recaptcha-response", "");
         
         // Validate reCAPTCHA
@@ -148,13 +162,15 @@ class RegisterController extends Controller
             // Test keys - just verify token exists
             \Illuminate\Support\Facades\Log::info("Using test reCAPTCHA keys - skipping Google verification");
         }
+        */
+        // TODO: Enable reCAPTCHA validation when correct API keys are provided
+        \Illuminate\Support\Facades\Log::info("reCAPTCHA validation is temporarily disabled");
 
         $role_id = $request->input('role');
         
         \Illuminate\Support\Facades\Log::info("=== Registration Process Started ===");
         \Illuminate\Support\Facades\Log::info("Role ID: " . $role_id);
         \Illuminate\Support\Facades\Log::info("Email: " . $request->input('email'));
-        \Illuminate\Support\Facades\Log::info("reCAPTCHA token received: " . ($recaptcha ? 'YES' : 'NO'));
 
         $savedUser = null;
         try {

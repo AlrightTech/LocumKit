@@ -26,6 +26,7 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
+    @if(config('app.google_tag_manager_id'))
     <script>
         (function(w, d, s, l, i) {
             w[l] = w[l] || [];
@@ -42,6 +43,7 @@
             f.parentNode.insertBefore(j, f);
         })(window, document, 'script', 'dataLayer', `{{ config('app.google_tag_manager_id') }}`);
     </script>
+    @endif
 
     <!-- Cross-browser compatibility polyfills -->
     <script>
@@ -121,8 +123,10 @@
 
 <body>
 
+    @if(config('app.google_tag_manager_id'))
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ config('app.google_tag_manager_id') }}"
             height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    @endif
 
     <div id="loader-div" style="display: none;">
         <div class="loader"></div>
@@ -239,12 +243,14 @@
                             <div class="col-md-12 col-sm-12 col-xs-12 formlft">
                                 <h2>Welcome back!</h2>
 
-                                @if (isset($errors) && $errors->any())
+                                @if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
                                     <div class="alert alert-danger"
                                         style="margin-bottom: 15px; padding: 10px; border-radius: 5px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24;">
                                         <ul class="mb-0" style="margin-bottom: 0; padding-left: 20px;">
-                                            @foreach ($errors->all() as $error)
-                                                <li>{{ $error }}</li>
+                                            @foreach (is_object($errors) && method_exists($errors, 'all') ? $errors->all() : [] as $error)
+                                                @if($error)
+                                                    <li>{{ $error }}</li>
+                                                @endif
                                             @endforeach
                                         </ul>
                                     </div>
@@ -325,7 +331,7 @@
         });
 
         // Show login modal if there are validation errors
-        @if (isset($errors) && $errors->any())
+        @if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
             $(document).ready(function() {
                 // Show the modal and prevent it from being hidden
                 $('#login-form-model').modal({
@@ -345,7 +351,7 @@
         @endif
 
         // Handle successful login (no errors) - ensure modal can close normally
-        @if (!isset($errors) || !$errors->any())
+        @if (!isset($errors) || !is_object($errors) || !method_exists($errors, 'any') || !$errors->any())
             $(document).ready(function() {
                 // Allow normal modal behavior when there are no errors
                 $('#login-form-model').modal({
@@ -356,7 +362,7 @@
         @endif
 
         // Additional protection to prevent modal hiding when there are errors
-        @if (isset($errors) && $errors->any())
+        @if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
             $(document).on('hide.bs.modal', '#login-form-model', function(e) {
                 // Only allow hiding if it's triggered by the close button
                 if (!$(e.target).hasClass('manual-close-allowed')) {
@@ -477,14 +483,17 @@
                     <div class="col-md-3 col-sm-3 col-xs-12 fooc3">
                         <h5>Recent Posts</h5>
                         <ul class="carretlist">
-                            @foreach ($latest_blogs as $blog)
-                                <li>
-                                    <a href="/blog/{{ $blog->slug }}" target="_blank"> {{ $blog->title }} </a>
-                                    <span><i class="fa fa-calendar" aria-hidden="true"></i>
-                                        {{ $blog->created_at->format('d M y') }} </span>
-                                </li>
-                            @endforeach
-                            </li>
+                            @if(!empty($latest_blogs))
+                                @foreach ($latest_blogs as $blog)
+                                    <li>
+                                        <a href="/blog/{{ $blog->slug }}" target="_blank"> {{ $blog->title }} </a>
+                                        <span><i class="fa fa-calendar" aria-hidden="true"></i>
+                                            {{ $blog->created_at->format('d M y') }} </span>
+                                    </li>
+                                @endforeach
+                            @else
+                                <li><span>No recent posts</span></li>
+                            @endif
                         </ul>
                     </div>
                     @php
@@ -498,10 +507,18 @@
                             'tw' => '',
                         ];
 
-                        $socialLinks = coreConfigData::whereIn('identifier', array_keys($socialIcons))->pluck(
-                            'value',
-                            'identifier',
-                        );
+                        // Safely fetch social links with error handling
+                        try {
+                            $socialLinks = coreConfigData::whereIn('identifier', array_keys($socialIcons))->pluck(
+                                'value',
+                                'identifier',
+                            );
+                            // Ensure it's always an array-like structure
+                            $socialLinks = $socialLinks ?? collect([]);
+                        } catch (\Exception $e) {
+                            // If database query fails, default to empty collection
+                            $socialLinks = collect([]);
+                        }
                     @endphp
                     <div class="col-md-3 col-sm-3 col-xs-12 fooc4">
                         <h5>Contact Us</h5>

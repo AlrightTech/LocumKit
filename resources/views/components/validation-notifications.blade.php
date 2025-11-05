@@ -20,11 +20,19 @@
         }).showToast();
     </script>
 @endif
-@if (isset($errors) && $errors->any())
+@if (isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
     @php
         $errorUlInner = '';
-        foreach ($errors->all() as $value) {
-            $errorUlInner .= "<li>{$value}</li>";
+        $allErrors = [];
+        try {
+            $allErrors = $errors->all();
+        } catch (\Exception $e) {
+            $allErrors = [];
+        }
+        foreach ($allErrors as $value) {
+            if ($value) {
+                $errorUlInner .= "<li>" . htmlspecialchars($value) . "</li>";
+            }
         }
         $errorHtmlAcl = '<p><strong>Something went wrong</strong></p>';
         $errorHtmlAcl .= "<ul>{$errorUlInner}</ul>";

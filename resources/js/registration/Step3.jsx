@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 function close_dive(id) {
     $("#" + id).hide(1000);
@@ -8,9 +8,50 @@ function close_dive(id) {
 }
 
 function Step3({ user, setUser, setStep }) {
-    function get_list(id) {
+    // Use ref to track saved distance - refs don't cause re-renders
+    const townsSavedRef = useRef(null);
+    
+    // Expose save_list function globally
+    useEffect(() => {
+        window.save_list_react = () => {
+            console.log('✅ SAVE CLICKED - Saving distance and PERMANENTLY closing modal:', user.max_distance);
+            townsSavedRef.current = user.max_distance;
+            $("#getlist-section").hide(1000);
+            $('.modal-backdrop').hide(1000);
+        };
+        
+        return () => {
+            delete window.save_list_react;
+        };
+    }, [user.max_distance]);
+    
+    function get_list(id, isUserAction = false) {
+        console.log('🔍 get_list called:', {id, isUserAction, currentDistance: user.max_distance, townsSaved: townsSavedRef.current});
+        
+        // ULTIMATE BLOCKER: If towns saved for this distance, NEVER reopen
+        if (townsSavedRef.current === id) {
+            console.log('🚫 BLOCKED: Towns already saved for this distance - WILL NOT REOPEN');
+            return;
+        }
+        
+        // Second check: Not a user action
+        if (!isUserAction) {
+            console.log('🚫 BLOCKED: Not a user action');
+            return;
+        }
+        
+        // If user changed to a different distance, reset and allow
+        if (townsSavedRef.current !== null && townsSavedRef.current !== id) {
+            console.log('🔄 User changed distance from', townsSavedRef.current, 'to', id, '- Allowing new modal');
+            townsSavedRef.current = null;
+        }
+        
+        console.log('✅ Opening modal for distance:', id);
         setUser({ ...user, max_distance: id });
+        
         if (id == "Over 50") {
+            console.log('📍 Over 50 selected - no towns needed');
+            townsSavedRef.current = id;
             return;
         } else {
             var town = user.city;
@@ -416,47 +457,47 @@ function Step3({ user, setUser, setStep }) {
                                 </div>
                                 <div className="col-md-6">
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "5" ? true : false} value="5" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "5" ? true : false} value="5" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>5 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "10" ? true : false} value="10" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "10" ? true : false} value="10" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>10 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "15" ? true : false} value="15" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "15" ? true : false} value="15" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>15 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "20" ? true : false} value="20" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "20" ? true : false} value="20" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>20 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "25" ? true : false} value="25" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "25" ? true : false} value="25" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>25 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "30" ? true : false} value="30" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "30" ? true : false} value="30" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>30 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "35" ? true : false} value="35" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "35" ? true : false} value="35" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>35 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "40" ? true : false} value="40" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "40" ? true : false} value="40" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>40 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "45" ? true : false} value="45" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "45" ? true : false} value="45" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>45 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "50" ? true : false} value="50" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "50" ? true : false} value="50" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>50 miles</span>
                                     </div>
                                     <div className="dist_list">
-                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "Over 50" ? true : false} value="Over 50" onClick={(e) => get_list(e.target.value)} />
+                                        <input type="radio" name="max_distance" className="width-100 margin-right" checked={user && user.max_distance == "Over 50" ? true : false} value="Over 50" onClick={(e) => get_list(e.target.value, true)} />
                                         <span>Over 50 miles</span>
                                     </div>
                                     <div id="store_selected_error" className="css_error" style={{ clear: "both", marginBottom: "10px", color: "#dc3545", fontSize: "14px", fontWeight: "bold" }}></div>

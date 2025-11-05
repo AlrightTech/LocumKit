@@ -328,33 +328,78 @@ class AjaxController extends Controller
 
     public function getTownList(Request $request)
     {
-        $distanceHelper = new DistanceCalculateHelper();
-        $zipCode = str_replace(' ', '', $request->input('zip'));
-        $address = str_replace(' ', '+', $request->input('full_addr'));
-        $maxDistance = $request->input('max_dis') === 'Over 50' ? 6371 : intval($request->input('max_dis')); // earth's mean radius, km
-        $lat = $distanceHelper->getLatitude($zipCode, $address); // latitude of center of bounding circle in degrees
-        $lon = $distanceHelper->getLongitude($zipCode, $address); // longitude of center of bounding circle in degrees
+        try {
+            // Check if Mapbox API key is configured
+            if (empty(config('app.mapbox_api_key'))) {
+                // If no API key, return all towns (fallback mode)
+                $results = SiteTown::select('id', 'town')
+                    ->orderBy('town')
+                    ->limit(100)
+                    ->get();
+                
+                $resultsCount = $results->count();
+                
+                $html = '<div class="col-md-12">';
+                $html .= '<p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;">Note: Distance calculation is unavailable. Please select from all available towns.</p>';
+                $html .= '<div class="store_list margin-top"><p class="col-md-8 list_count">' . $resultsCount . ' towns available.</p><p class="col-md-4 list_count_save_btn"><input type="button" class="btn btn-small btn-warning" name="save_list_data" value="Save & Continue" onClick="save_list();"></p></div>';
+                
+                foreach ($results as $result) {
+                    $html .= '<div class="store_list"><div class="col-md-1 no-padding-left"><span class="margin-right"><input type="checkbox" class="st_data margin-right" name="store_list[]" value="' . $result->id . '" checked></span></div><div class="col-md-11 no-padding-right"><p><span class="town-name text-right">' . htmlspecialchars($result->town, ENT_QUOTES, 'UTF-8') . '</span></p></div></div>';
+                }
+                $html .= '</div>';
 
-        $maxLat = $lat + rad2deg($maxDistance / 6371);
-        $minLat = $lat - rad2deg($maxDistance / 6371);
-        $maxLon = $lon + rad2deg($maxDistance / 6371 / cos(deg2rad($lat)));
-        $minLon = $lon - rad2deg($maxDistance / 6371 / cos(deg2rad($lat)));
+                return new JsonResponse(["html" => $html]);
+            }
+            
+            $distanceHelper = new DistanceCalculateHelper();
+            $zipCode = str_replace(' ', '', $request->input('zip'));
+            $address = str_replace(' ', '+', $request->input('full_addr'));
+            $maxDistance = $request->input('max_dis') === 'Over 50' ? 6371 : intval($request->input('max_dis')); // earth's mean radius, km
+            $lat = $distanceHelper->getLatitude($zipCode, $address); // latitude of center of bounding circle in degrees
+            $lon = $distanceHelper->getLongitude($zipCode, $address); // longitude of center of bounding circle in degrees
 
-        $results = SiteTown::select('id', 'town')
-            ->selectRaw('(ST_Distance_Sphere(point(lon, lat), point(?, ?)) / 1609.34) as distance', [$lon, $lat])
-            ->whereBetween('lat', [$minLat, $maxLat])
-            ->whereBetween('lon', [$minLon, $maxLon])
-            ->orderBy('distance')
-            ->get();
+            $maxLat = $lat + rad2deg($maxDistance / 6371);
+            $minLat = $lat - rad2deg($maxDistance / 6371);
+            $maxLon = $lon + rad2deg($maxDistance / 6371 / cos(deg2rad($lat)));
+            $minLon = $lon - rad2deg($maxDistance / 6371 / cos(deg2rad($lat)));
 
-        $resultsCount = $results->count();
+            $results = SiteTown::select('id', 'town')
+                ->selectRaw('(ST_Distance_Sphere(point(lon, lat), point(?, ?)) / 1609.34) as distance', [$lon, $lat])
+                ->whereBetween('lat', [$minLat, $maxLat])
+                ->whereBetween('lon', [$minLon, $maxLon])
+                ->orderBy('distance')
+                ->get();
+
+            $resultsCount = $results->count();
+        } catch (\Exception $e) {
+            // If distance calculation fails, return all towns
+            \Log::error('getTownList error: ' . $e->getMessage());
+            
+            $results = SiteTown::select('id', 'town')
+                ->orderBy('town')
+                ->limit(100)
+                ->get();
+            
+            $resultsCount = $results->count();
+            
+            $html = '<div class="col-md-12">';
+            $html .= '<p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;">Note: Distance calculation failed. Please select from all available towns.</p>';
+            $html .= '<div class="store_list margin-top"><p class="col-md-8 list_count">' . $resultsCount . ' towns available.</p><p class="col-md-4 list_count_save_btn"><input type="button" class="btn btn-small btn-warning" name="save_list_data" value="Save & Continue" onClick="save_list();"></p></div>';
+            
+            foreach ($results as $result) {
+                $html .= '<div class="store_list"><div class="col-md-1 no-padding-left"><span class="margin-right"><input type="checkbox" class="st_data margin-right" name="store_list[]" value="' . $result->id . '" checked></span></div><div class="col-md-11 no-padding-right"><p><span class="town-name text-right">' . htmlspecialchars($result->town, ENT_QUOTES, 'UTF-8') . '</span></p></div></div>';
+            }
+            $html .= '</div>';
+
+            return new JsonResponse(["html" => $html]);
+        }
 
         $html = '<div class="col-md-12">';
         if ($resultsCount > 0) {
             $html .= '<div class="store_list margin-top"><p class="col-md-8 list_count">' . $resultsCount . ' record(s) found.</p><p class="col-md-4 list_count_save_btn"><input type="button" class="btn btn-small btn-warning" name="save_list_data" value="Save & Continue" onClick="save_list();"></p></div>';
             foreach ($results as $key => $value) {
                 $html .= '<div class="store_list"><div class="col-md-1 no-padding-left"><span class="margin-right"><input type="checkbox" class="st_data margin-right" name="store_list[]" value="' . $value->id . '" checked></span></div><div class="col-md-11 no-padding-right">
-                <p><span class="town-name text-right">' . $value->town . '</span><span class="distance text-right"> ' . number_format((float)$value->distance, 2, '.', '') . ' Miles</span></p></div></div>';
+                <p><span class="town-name text-right">' . htmlspecialchars($value->town, ENT_QUOTES, 'UTF-8') . '</span><span class="distance text-right"> ' . number_format((float)$value->distance, 2, '.', '') . ' Miles</span></p></div></div>';
             }
         } else {
             $html .= '<div class="store_list"><strong>No record found. Please check the post code Or try with higher range.</strong></div>';
@@ -646,6 +691,12 @@ class AjaxController extends Controller
         if (is_null($user)) {
             return new JsonResponse(["message" => "No user found"], 500);
         }
+        
+        // Get current employer ID for block functionality
+        $employerId = auth()->id();
+        $encryptedEmployerId = encrypt($employerId);
+        $encryptedFreelancerId = encrypt($id);
+        
         $feedbacks = JobFeedback::with("freelancer")->where("freelancer_id", $id)->where("user_type", "employer")->where("status", 1)->whereDate("created_at", ">=", today()->subMonths(120)->startOfMonth())->get();
         $totalFeedback = count($feedbacks);
         $perRating = get_overall_feedback_rating($feedbacks);
@@ -752,6 +803,38 @@ class AjaxController extends Controller
             $individualRatingHtml = "";
         }
 
+        // Check if this locum is already blocked
+        $isBlocked = \App\Models\BlockUser::where('employer_id', $employerId)
+                                          ->where('freelancer_id', $id)
+                                          ->exists();
+        
+        // Create block button HTML
+        $blockButtonHtml = "";
+        if (!$isBlocked) {
+            $blockUrl = url("/block-user?employer_id={$encryptedEmployerId}&freelancer_id={$encryptedFreelancerId}");
+            $blockButtonHtml = "
+                <div style='margin-top: 15px; text-align: center;'>
+                    <a href='{$blockUrl}' class='btn btn-danger' style='background-color: #d9534f; border-color: #d43f3a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;'>
+                        <i class='fa fa-ban' aria-hidden='true'></i> Block This Locum
+                    </a>
+                    <p style='margin-top: 10px; font-size: 12px; color: #666;'>
+                        Blocked locums will not receive invitations to your future jobs.
+                    </p>
+                </div>
+            ";
+        } else {
+            $blockButtonHtml = "
+                <div style='margin-top: 15px; text-align: center;'>
+                    <span style='color: #d9534f; font-weight: bold;'>
+                        <i class='fa fa-ban' aria-hidden='true'></i> This locum is already blocked
+                    </span>
+                    <p style='margin-top: 5px; font-size: 12px; color: #666;'>
+                        You can unblock them from the 'Manage blocked locum(s)' page.
+                    </p>
+                </div>
+            ";
+        }
+        
         $html = "
             <table class='table table-hover view_applicant_record table-bordered'>
                 <tr>
@@ -770,6 +853,7 @@ class AjaxController extends Controller
                 </tr>
             </table>
             {$individualRatingHtml}
+            {$blockButtonHtml}
         ";
 
         return new JsonResponse(["success" => true, "html" => $html]);

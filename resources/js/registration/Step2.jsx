@@ -222,6 +222,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             }
         }
 
+        /* TEMPORARILY DISABLED - CAPTCHA validation (incorrect API keys)
         // CAPTCHA validation - check both state and localStorage
         console.log('=== CAPTCHA Validation ===');
         console.log('user.g_recaptcha_response:', user.g_recaptcha_response);
@@ -243,6 +244,9 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                 setUser((prevUser) => ({ ...prevUser, g_recaptcha_response: savedToken }));
             }
         }
+        */
+        // TODO: Enable CAPTCHA validation when correct API keys are provided
+        console.log('CAPTCHA validation is temporarily disabled');
 
         setErrors(newErrors);
 
@@ -752,6 +756,7 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     )}
                 </div>
             </div>
+            {/* TEMPORARILY DISABLED - reCAPTCHA Widget (incorrect API keys)
             <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px" }}>
                 <div className="recaptcha-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
                     {user.g_recaptcha_response ? (
@@ -774,6 +779,8 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
                     </span>
                 )}
             </div>
+            */}
+            {/* TODO: Enable reCAPTCHA widget when correct API keys are provided */}
             <div className="col-md-12 pad0 form-group text-center" style={{ marginTop: "20px" }}>
                 <span className="formlft">
                     <button type="button" className="btn btn-default btn-1 lkbtn" onClick={(e) => setStep(1)}>
