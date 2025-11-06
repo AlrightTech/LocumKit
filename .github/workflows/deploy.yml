@@ -1,30 +1,109 @@
-name: 🚀 Deploy to Server
+name: Deploy to cPanel
 
 on:
   push:
     branches:
-      - main
-
+      - main  # Change to your main branch name
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
   deploy:
-    name: SSH Deploy to Server
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: ✅ Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: 🔐 Setup SSH Key
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'  # Match your PHP version
+          extensions: mbstring, xml, bcmath, pdo, pdo_mysql, fileinfo, openssl, tokenizer, json, ctype
+      
+      - name: Install dependencies
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 199.250.202.252 >> ~/.ssh/known_hosts
-          
-      - name: 📦 Deploy via SSH
+          composer install --no-dev --optimize-autoloader --no-interaction
+          npm ci
+          npm run production
+      
+      - name: Create deployment package
         run: |
-          ssh -i ~/.ssh/id_rsa locumk5@199.250.202.252 << 'EOF'
-            cd /home/locumk5/public_html
-            git pull origin main
-          EOF
+          mkdir -p deploy
+          # Copy necessary files
+          rsync -av --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='.env' \
+            --exclude='.env.example' \
+            --exclude='tests' \
+            --exclude='phpunit.xml' \
+            --exclude='.phpunit.result.cache' \
+            . deploy/
+      
+      - name: Compress deployment package
+        run: |
+          cd deploy
+          tar -czf ../deploy.tar.gz .
+          cd ..
+      
+      - name: Deploy to cPanel via SSH
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          source: "deploy.tar.gz"
+          target: "/home/${{ secrets.CPANEL_USERNAME }}/tmp/"
+      
+      - name: Extract and deploy on server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          script: |
+            cd ${{ secrets.CPANEL_DEPLOY_PATH }}
+            
+            # Backup current version
+            if [ -d "current" ]; then
+              cp -r current backup_$(date +%Y%m%d_%H%M%S)
+            fi
+            
+            # Extract new version
+            tar -xzf /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy.tar.gz -C /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy_new
+            
+            # Run Laravel deployment commands
+            cd /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy_new
+            
+            # Set permissions
+            chmod -R 755 storage bootstrap/cache
+            chown -R ${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_USERNAME }} storage bootstrap/cache
+            
+            # Run composer install on server (if needed)
+            # /usr/local/bin/php81 /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
+            
+            # Run migrations (optional - uncomment if needed)
+            # /usr/local/bin/php81 artisan migrate --force
+            
+            # Clear and cache config
+            /usr/local/bin/php81 artisan config:cache
+            /usr/local/bin/php81 artisan route:cache
+            /usr/local/bin/php81 artisan view:cache
+            
+            # Move to production directory
+            if [ -d "${{ secrets.CPANEL_DEPLOY_PATH }}/current" ]; then
+              rm -rf ${{ secrets.CPANEL_DEPLOY_PATH }}/current
+            fi
+            mv /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy_new ${{ secrets.CPANEL_DEPLOY_PATH }}/current
+            
+            # Cleanup
+            rm -f /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy.tar.gz
+            
+            # Restart PHP-FPM (if needed)
+            # /usr/local/cpanel/scripts/restartsrv_php-fpm

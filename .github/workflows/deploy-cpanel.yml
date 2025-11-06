@@ -1,0 +1,80 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, bcmath, pdo, pdo_mysql, fileinfo, openssl, tokenizer, json, ctype
+      
+      - name: Install Composer Dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+      
+      - name: Install NPM Dependencies
+        run: |
+          npm ci
+          npm run production
+      
+      - name: Deploy to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          server-dir: /public_html/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env
+            **/.env.example
+            **/tests/**
+            **/storage/logs/**
+            **/storage/framework/cache/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
+            **/.github/**
+            **/phpunit.xml
+            **/.phpunit.result.cache
+      
+      - name: Run Post-Deployment Commands via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USERNAME }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          script: |
+            cd ${{ secrets.CPANEL_DEPLOY_PATH }}
+            
+            # Set permissions
+            chmod -R 755 storage bootstrap/cache
+            chown -R ${{ secrets.CPANEL_SSH_USERNAME }}:${{ secrets.CPANEL_SSH_USERNAME }} storage bootstrap/cache
+            
+            # Clear caches
+            /usr/local/bin/php81 artisan config:clear
+            /usr/local/bin/php81 artisan cache:clear
+            /usr/local/bin/php81 artisan view:clear
+            /usr/local/bin/php81 artisan route:clear
+            
+            # Cache for production
+            /usr/local/bin/php81 artisan config:cache
+            /usr/local/bin/php81 artisan route:cache
+            /usr/local/bin/php81 artisan view:cache
+            
+            # Run migrations (optional)
+            # /usr/local/bin/php81 artisan migrate --force
+            
+            echo "Deployment completed successfully!"
