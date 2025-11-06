@@ -33,7 +33,7 @@ class logincontroller extends Controller
             
             // Redirect based on user role
             if (Auth::user()->user_acl_role_id == 1) { // Admin
-                return redirect()->intended(route('admin.dashboard'));
+                return redirect()->intended(route('admin.dashboard.index'));
             }
             
             return redirect()->intended('/');

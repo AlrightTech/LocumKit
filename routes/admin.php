@@ -106,9 +106,10 @@ Route::group(['middleware' => ['auth', 'check.role'], "prefix" => "admin"], func
 
     Route::resource('dashboard', AdminController::class)->names('admin.dashboard');
     
-    // Quick approve/reject routes for employer verification
-    Route::patch('users/{id}/quick-approve', [UserController::class, 'quickApprove'])->name('admin.users.quick-approve');
-    Route::patch('users/{id}/quick-reject', [UserController::class, 'quickReject'])->name('admin.users.quick-reject');
+    // Quick approve/reject routes for employer/locum verification
+    // These must be defined BEFORE the resource route to avoid route conflicts
+    Route::match(['patch', 'post'], 'users/{id}/quick-approve', [UserController::class, 'quickApprove'])->name('admin.users.quick-approve');
+    Route::match(['patch', 'post'], 'users/{id}/quick-reject', [UserController::class, 'quickReject'])->name('admin.users.quick-reject');
     
     Route::resource('users', UserController::class)->names('admin.users');
     Route::resource('jobs', JobController::class)->names('admin.jobs');

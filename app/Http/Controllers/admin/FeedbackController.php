@@ -21,7 +21,7 @@ class FeedbackController extends Controller
 
     public function index()
     {
-        $allfeedback=JobFeedback::latest()->get();
+        $allfeedback = JobFeedback::with(['employer', 'freelancer'])->latest()->get();
       
         return view('admin.feedback.index',compact('allfeedback'));
     }
@@ -37,7 +37,12 @@ class FeedbackController extends Controller
 
     public function FeedbackEdit($id)
     {
-        $feedback=JobFeedback::find($id);
+        $feedback = JobFeedback::with(['employer', 'freelancer'])->find($id);
+        
+        if (!$feedback) {
+            return redirect()->route('admin.feedback.index')->with('error', 'Feedback not found.');
+        }
+        
         return view('admin.feedback.edit',compact('feedback'));
 
     }

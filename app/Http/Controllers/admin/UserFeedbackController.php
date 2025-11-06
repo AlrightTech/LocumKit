@@ -34,9 +34,8 @@ class UserFeedbackController extends Controller
             $jobFeedbackQuery->where('user_type', $this->role);
         }
 
-        $userFeedbacks =  $jobFeedbackQuery->with('employer', 'freelancer')->get();
-        // return $userFeedbacks;
-
+        $userFeedbacks = $jobFeedbackQuery->with(['employer', 'freelancer'])->get();
+        
         return view('admin.userfeedback.index', compact('userFeedbacks'));
     }
 
@@ -69,8 +68,12 @@ class UserFeedbackController extends Controller
      */
     public function edit(string $id)
     {
-        $userFeedback = JobFeedback::with('employer', 'freelancer')->find($id);
-        $userFeedback = JobFeedbackDispute::where('id', $id)->get()->first();
+        $userFeedback = JobFeedbackDispute::with(['jobFeedback.employer', 'jobFeedback.freelancer'])->where('id', $id)->first();
+        
+        if (!$userFeedback) {
+            return redirect()->route('admin.userfeedback.index')->with('error', 'Feedback dispute not found.');
+        }
+        
         return view('admin.userfeedback.edit', compact('userFeedback'));
     }
 
@@ -104,16 +107,13 @@ class UserFeedbackController extends Controller
 
     public function disputeFeedback()
     { 
-
-
-
-        $jobFeedbackDisputeQuery = JobFeedbackDispute::get();
+        $jobFeedbackDisputeQuery = JobFeedbackDispute::query();
 
         if ($this->role != null) {
             $jobFeedbackDisputeQuery->where('user_type', $this->role);
         }
 
-        $jobFeedbackDispute = $jobFeedbackDisputeQuery;
+        $jobFeedbackDispute = $jobFeedbackDisputeQuery->with(['jobfeedback.employer', 'jobfeedback.freelancer'])->get();
         return view('admin.userfeedback.disputfeedback', compact('jobFeedbackDispute'));
     }
     public function disputeFeedbackEdit($id)

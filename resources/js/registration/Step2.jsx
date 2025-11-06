@@ -172,9 +172,9 @@ function Step2({ user, setUser, setStep, errors, setErrors }) {
             isValid = false;
         }
 
-        // Address validation
-        if (!user.address || user.address.length < 10) {
-            newErrors.address = "Address must be at least 10 characters.";
+        // Address validation - required but no length restrictions
+        if (!user.address || user.address.trim() === '') {
+            newErrors.address = "Address is required.";
             isValid = false;
         }
 

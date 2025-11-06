@@ -39,6 +39,54 @@
             color: #2dc9ff;
         }
         
+        /* Checkbox styling */
+        .timeline-box input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            border: 2px solid #2dc9ff;
+            border-radius: 4px;
+            position: relative;
+            background-color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .timeline-box input[type="checkbox"]:checked {
+            background-color: #2dc9ff;
+            border-color: #2dc9ff;
+        }
+        
+        .timeline-box input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        
+        .timeline-box input[type="checkbox"]:hover {
+            border-color: #1fa8d6;
+            box-shadow: 0 0 0 2px rgba(45, 201, 255, 0.2);
+        }
+        
+        .timeline-div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .timeline-text {
+            flex: 1;
+        }
+        
         .removeclass {
             cursor: pointer;
             transition: all 0.3s ease;
@@ -101,8 +149,33 @@
                                 </div>
 
                                 <div class="mar-mins" id="step2" style="display:block;">
+                                    <!-- 1. Job Reference -->
                                     <div class="col-md-12">
-                                        <div class="col-md-4"> Please select store to post job </div>
+                                        <div class="col-md-4">
+                                            <label>Job Reference <span class="text-danger">*</span></label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <input 
+                                                type="text" 
+                                                name="job_reference" 
+                                                class="form-control margin-bottom" 
+                                                @if (isset($job) && $job && $job->job_reference) 
+                                                    value="{{ $job->job_reference }}" 
+                                                @endif
+                                                placeholder="e.g., OPT-JAN25-001" 
+                                                pattern="[A-Za-z0-9\-]+"
+                                                title="Alphanumeric with dashes allowed"
+                                                required
+                                            >
+                                            <small class="text-muted">A short name or code to identify the job.</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. Location / Store -->
+                                    <div class="col-md-12">
+                                        <div class="col-md-4">
+                                            <label>Location / Store <span class="text-danger">*</span></label>
+                                        </div>
                                         <div class="col-md-8">
                                             <select name="job_store" id="job_store" class="form-control" required>
                                                 <option value="" disabled selected>Select Store</option>
@@ -110,47 +183,69 @@
                                                     <option value="{{ $store->id }}" @if (isset($job) && $job) @selected($job->employer_store_list_id == $store->id) @endif> {{ $store->store_name }} </option>
                                                 @endforeach
                                             </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <div class="col-md-4">Job reference </div>
-                                        <div class="col-md-8">
-                                            <input 
-                                                type="text" 
-                                                name="job_title" 
-                                                minlength="5" 
-                                                maxlength="50" 
-                                                class="form-control margin-bottom" 
-                                                @if (isset($job) && $job) 
-                                                    value="{{ $job->job_title }}" 
-                                                @endif
-                                                placeholder="Enter job title for your reference" 
-                                                required
-                                            >
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12"> 
-                                        <div class="col-md-4">Date required</div>
-                                        <div class="col-md-8">
-                                            <input 
-                                                type="text" 
-                                                name="job_date" 
-                                                class="form-control margin-bottom req-datepicker" 
-                                                pattern="\d{2}/\d{2}/\d{4}" 
-                                                @if (isset($job) && $job) 
-                                                    value="{{ get_date_with_default_format($job->job_date) }}" 
-                                                @endif
-                                                placeholder="dd/mm/yyyy" 
-                                                title="Date must be in dd/mm/yyyy format (e.g., 26/02/2024)" 
-                                                required
-                                                readonly
-                                            >
-                                            <small class="text-muted">Click to select date (Format: dd/mm/yyyy)</small>
+                                            <div id="store-details" class="margin-top" style="display:none;">
+                                                <div class="alert alert-info" style="margin-top:10px;">
+                                                    <strong>Store Details:</strong><br>
+                                                    <span id="store-address"></span><br>
+                                                    <span id="store-contact"></span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
+                                    <!-- 3. Date & Time (Multiple Rows) -->
                                     <div class="col-md-12">
-                                        <div class="col-md-4">Rate offered(£)</div>
+                                        <div class="col-md-4">
+                                            <label>Date & Time <span class="text-danger">*</span></label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div id="datetime-rows">
+                                                <div class="datetime-row margin-bottom" style="border:1px solid #ddd; padding:15px; border-radius:5px; margin-bottom:10px;">
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <label>Date</label>
+                                                            <input 
+                                                                type="text" 
+                                                                name="job_dates[]" 
+                                                                class="form-control margin-bottom req-datepicker datetime-date" 
+                                                                pattern="\d{2}/\d{2}/\d{4}" 
+                                                                placeholder="dd/mm/yyyy" 
+                                                                required
+                                                                readonly
+                                                            >
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label>Start Time (HH:mm)</label>
+                                                            <input 
+                                                                type="time" 
+                                                                name="job_start_times[]" 
+                                                                class="form-control margin-bottom datetime-start-time" 
+                                                                required
+                                                            >
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label>End Time (HH:mm)</label>
+                                                            <input 
+                                                                type="time" 
+                                                                name="job_end_times[]" 
+                                                                class="form-control margin-bottom datetime-end-time" 
+                                                                required
+                                                            >
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-info" id="add-datetime-row">
+                                                <i class="fa fa-plus"></i> Add Another Date & Time
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. Rate Offered -->
+                                    <div class="col-md-12">
+                                        <div class="col-md-4">
+                                            <label>Rate Offered (£) <span class="text-danger">*</span></label>
+                                        </div>
                                         <div class="col-md-8">
                                             <input 
                                                 type="number" 
@@ -162,21 +257,48 @@
                                                 @if (isset($job) && $job) 
                                                     value="{{ $job->job_rate }}" 
                                                 @endif
-                                                placeholder="Enter job rate in (£)" 
+                                                placeholder="Enter rate in (£)" 
                                                 required 
                                             />
-                                            <small class="text-muted">Enter rate between £1 and £999,999</small>
+                                            <small class="text-muted">This is the rate locums will initially see.</small>
                                         </div>
-
-
                                     </div>
+
+                                    <!-- 5. Number of Locums Needed -->
                                     <div class="col-md-12">
-                                        <div class="col-md-4"></div>
+                                        <div class="col-md-4">
+                                            <label>Number of Locums Needed <span class="text-danger">*</span></label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <input 
+                                                type="number" 
+                                                name="num_locums_needed" 
+                                                min="1" 
+                                                max="100" 
+                                                class="form-control margin-bottom" 
+                                                @if (isset($job) && $job && $job->num_locums_needed) 
+                                                    value="{{ $job->num_locums_needed }}" 
+                                                @else
+                                                    value="1"
+                                                @endif
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+                                    <!-- 6. Preset Rate Increase (Optional) -->
+                                    <div class="col-md-12">
+                                        <div class="col-md-4">
+                                            <label>Preset Rate Increase</label>
+                                        </div>
                                         <div class="col-md-8 timeline-div">
-                                            <div class="timeline-box"><input type="checkbox" name="set_timeline" value="1" class="form-control margin-bottom" id="open_timeline" @if (isset($job) && $job && sizeof($job->job_post_timelines) > 0) checked @endif></div>
-                                            <div class="timeline-text">If you wish to increase the rate if a locum is not booked, please click here.</div>
-                                            <div class="" id="show_add" @if (isset($job) && $job && sizeof($job->job_post_timelines) > 0) style="" @else style="display:none;" @endif><a href="javascript:void(0);" class="color-white" id="add_timeline"><i
-                                                       class="fa fa-plus" aria-hidden="true" title="Add Timeline"></i></a>
+                                            <div class="timeline-box">
+                                                <input type="checkbox" name="set_timeline" value="1" class="form-control margin-bottom" id="open_timeline" @if (isset($job) && $job && sizeof($job->job_post_timelines) > 0) checked @endif>
+                                            </div>
+                                            <div class="timeline-text">Enable automatic rate increase if not accepted.</div>
+                                            <div class="" id="show_add" @if (isset($job) && $job && sizeof($job->job_post_timelines) > 0) style="" @else style="display:none;" @endif>
+                                                <a href="javascript:void(0);" class="color-white" id="add_timeline">
+                                                    <i class="fa fa-plus" aria-hidden="true" title="Add Timeline"></i>
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
@@ -192,7 +314,7 @@
                                                         <div class="row">
                                                             <div class="col-md-3">
                                                                 <label>Date</label>
-                                                                <input type="date" name="job_date_new[]" value="{{ $timeline->job_date_new->format('Y-m-d') }}" class="form-control margin-bottom timeline-date" placeholder="Enter date" required>
+                                                                <input type="date" name="job_date_new[]" value="{{ $timeline->job_date_new->format('Y-m-d') }}" class="form-control margin-bottom timeline-date" placeholder="Enter date" min="{{ date('Y-m-d') }}" required>
                                                             </div>
                                                             <div class="col-md-2">
                                                                 <label>Time</label>
@@ -209,20 +331,11 @@
                                                                     @endfor
                                                                 </select>
                                                             </div>
-                                                            <div class="col-md-2">
+                                                            <div class="col-md-3">
                                                                 <label>Increase Rate</label>
                                                                 <input type="number" name="job_rate_new[]" value="{{ $timeline->job_rate_new }}" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required>
                                                             </div>
-                                                            <div class="col-md-2">
-                                                                <label>Hours</label>
-                                                                <select name="job_timeline_hrs[]" class="form-control margin-bottom timeline-hrs" required>
-                                                                    <option value="">Hours</option>
-                                                                    @for($i = 1; $i <= 24; $i++)
-                                                                        <option value="{{ $i }}" @selected($timeline->job_timeline_hrs == $i)>{{ $i }}</option>
-                                                                    @endfor
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-2">
+                                                            <div class="col-md-3">
                                                                 <label>&nbsp;</label>
                                                                 <div class="timeline-preview">
                                                                     <small class="text-muted">Preview:</small><br>
@@ -250,10 +363,48 @@
                                             </select>
                                         </div>
                                     </div>
+                                    <!-- 7. Special Requirements (Optional) -->
                                     <div class="col-md-12">
-                                        <div class="col-md-4">Job description</div>
+                                        <div class="col-md-4">
+                                            <label>Special Requirements</label>
+                                        </div>
                                         <div class="col-md-8">
-                                            <textarea name="job_post_desc" class="form-control margin-bottom" placeholder="Enter any special instructions ie: half day / different timings">@php
+                                            <div class="margin-bottom">
+                                                <label class="checkbox-inline">
+                                                    <input type="checkbox" name="special_requirements[]" value="Must speak Urdu"> Must speak Urdu
+                                                </label><br>
+                                                <label class="checkbox-inline">
+                                                    <input type="checkbox" name="special_requirements[]" value="Must be experienced with OCT scans"> Must be experienced with OCT scans
+                                                </label><br>
+                                                <label class="checkbox-inline">
+                                                    <input type="checkbox" name="special_requirements[]" value="Must cover contact lens fitting"> Must cover contact lens fitting
+                                                </label>
+                                            </div>
+                                            <input 
+                                                type="text" 
+                                                name="special_requirements_custom" 
+                                                class="form-control margin-bottom" 
+                                                placeholder="Enter custom requirements (comma-separated)"
+                                                @if (isset($job) && $job && $job->special_requirements) 
+                                                    value="{{ $job->special_requirements }}" 
+                                                @endif
+                                            >
+                                            <small class="text-muted">Only locums meeting these requirements will see the job.</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- 8. Special Instructions (Optional) -->
+                                    <div class="col-md-12">
+                                        <div class="col-md-4">
+                                            <label>Special Instructions</label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <textarea 
+                                                name="job_post_desc" 
+                                                class="form-control margin-bottom" 
+                                                rows="4"
+                                                placeholder="Enter any special instructions (e.g., Parking available at rear, bring your own trial frame)"
+                                            >@php
                                                 if (isset($job) && $job) {
                                                     echo $job->job_post_desc;
                                                 }
@@ -320,18 +471,11 @@
         $(document).ready(datePickerCaller);
 
         (() => {
-            var min_date = 0;
-            var currentTime = new Date(`{{ now() }}`);
-            if (currentTime.getHours() > 11) {
-                min_date = 1;
-            }
-            if (currentTime.getHours() == 11 && currentTime.getMinutes() > 30) {
-                min_date = 1;
-            }
+            // Allow selecting today and future dates (minDate: 0 means today)
             $(".req-datepicker").datepicker({
-                minDate: min_date,
+                minDate: 0, // Allow today and future dates
                 maxDate: '+3y',
-                defaultDate: min_date,
+                defaultDate: 0,
                 changeMonth: true,
                 changeYear: true,
                 beforeShowDay: DisableSpecificDatesReq,
@@ -345,19 +489,11 @@
 
         function datePickerCaller() {
             $('.datepicker').each(function() {
-                var min_date = 0;
-                var currentTime = new Date(`{{ now() }}`);
-                if (currentTime.getHours() > 11) {
-                    min_date = 1;
-                }
-                if (currentTime.getHours() == 11 && currentTime.getMinutes() > 30) {
-                    min_date = 1;
-                }
-
+                // Allow selecting today and future dates (minDate: 0 means today)
                 $(this).datepicker({
-                    minDate: min_date,
+                    minDate: 0, // Allow today and future dates
                     maxDate: '+3y',
-                    defaultDate: min_date,
+                    defaultDate: 0,
                     changeMonth: true,
                     changeYear: true,
                     dateFormat: "dd/mm/yy",
@@ -381,6 +517,101 @@
     </script>
     <script type="text/javascript">
 $(document).ready(function() {
+    // Store details display
+    const storeData = {!! $store_data_json !!};
+    
+    $('#job_store').on('change', function() {
+        const storeId = parseInt($(this).val());
+        if (storeId) {
+            const store = storeData.find(s => parseInt(s.id) === storeId);
+            if (store) {
+                $('#store-address').text(store.address + ', ' + store.region + ' ' + store.zip);
+                // Note: Contact number would need to come from user_extra_info or another source
+                $('#store-contact').text('Contact: Available in store details');
+                $('#store-details').slideDown();
+            }
+        } else {
+            $('#store-details').slideUp();
+        }
+    });
+    
+    // Initialize store details if editing
+    @if (isset($job) && $job)
+        $('#job_store').trigger('change');
+    @endif
+    
+    // Dynamic Date-Time Rows
+    function addDateTimeRow() {
+        const rowHtml = `
+            <div class="datetime-row margin-bottom" style="border:1px solid #ddd; padding:15px; border-radius:5px; margin-bottom:10px; position:relative;">
+                <button type="button" class="btn btn-sm btn-danger remove-datetime-row" style="position:absolute; top:5px; right:5px;">
+                    <i class="fa fa-times"></i>
+                </button>
+                <div class="row" style="margin-top:20px;">
+                    <div class="col-md-4">
+                        <label>Date</label>
+                        <input 
+                            type="text" 
+                            name="job_dates[]" 
+                            class="form-control margin-bottom req-datepicker datetime-date" 
+                            pattern="\\d{2}/\\d{2}/\\d{4}" 
+                            placeholder="dd/mm/yyyy" 
+                            required
+                            readonly
+                        >
+                    </div>
+                    <div class="col-md-4">
+                        <label>Start Time (HH:mm)</label>
+                        <input 
+                            type="time" 
+                            name="job_start_times[]" 
+                            class="form-control margin-bottom datetime-start-time" 
+                            required
+                        >
+                    </div>
+                    <div class="col-md-4">
+                        <label>End Time (HH:mm)</label>
+                        <input 
+                            type="time" 
+                            name="job_end_times[]" 
+                            class="form-control margin-bottom datetime-end-time" 
+                            required
+                        >
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#datetime-rows').append(rowHtml);
+        // Initialize datepicker for new row
+        $('.req-datepicker').last().datepicker({
+            minDate: 0,
+            maxDate: '+3y',
+            defaultDate: 0,
+            changeMonth: true,
+            changeYear: true,
+            beforeShowDay: DisableSpecificDatesReq,
+            dateFormat: "dd/mm/yy",
+            yearRange: 'c:c+3',
+            onSelect: function(dateText) {
+                $(this).val(dateText);
+            }
+        });
+    }
+    
+    $('#add-datetime-row').on('click', function() {
+        addDateTimeRow();
+    });
+    
+    $(document).on('click', '.remove-datetime-row', function() {
+        if ($('.datetime-row').length > 1) {
+            $(this).closest('.datetime-row').fadeOut(300, function() {
+                $(this).remove();
+            });
+        } else {
+            alert('At least one date & time row is required.');
+        }
+    });
+    
     const blockHtml = `
         <div class="add_block timeline-item">
             <div class="row">
@@ -411,41 +642,11 @@ $(document).ready(function() {
                         <option value="17:00">17:00</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label>Increase Rate</label>
                     <input type="number" name="job_rate_new[]" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required>
                 </div>
-                <div class="col-md-2">
-                    <label>Hours</label>
-                    <select name="job_timeline_hrs[]" class="form-control margin-bottom timeline-hrs" required>
-                        <option value="">Hours</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9">9</option>
-                        <option value="10">10</option>
-                        <option value="11">11</option>
-                        <option value="12">12</option>
-                        <option value="13">13</option>
-                        <option value="14">14</option>
-                        <option value="15">15</option>
-                        <option value="16">16</option>
-                        <option value="17">17</option>
-                        <option value="18">18</option>
-                        <option value="19">19</option>
-                        <option value="20">20</option>
-                        <option value="21">21</option>
-                        <option value="22">22</option>
-                        <option value="23">23</option>
-                        <option value="24">24</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label>&nbsp;</label>
                     <div class="timeline-preview">
                         <small class="text-muted">Preview:</small><br>
@@ -461,7 +662,14 @@ $(document).ready(function() {
     `;
 
     function addBlock() {
+        // Get today's date in YYYY-MM-DD format for min attribute
+        const today = new Date().toISOString().split('T')[0];
+        
         $('.list_block').append(blockHtml);
+        
+        // Set min date attribute for the newly added date input to prevent past dates
+        $('.add_block:last-child .timeline-date').attr('min', today);
+        
         // Hide the fa-times icon for the first block
         if ($('.add_block').length === 1) {
             $('.add_block:last-child .removeclass').hide();
@@ -478,7 +686,18 @@ $(document).ready(function() {
         const time = block.find('.timeline-time').val();
         const rate = block.find('.timeline-rate').val();
         
-        const datePreview = date ? new Date(date).toLocaleDateString('en-GB') : '--/--/----';
+        // Format date properly
+        let datePreview = '--/--/----';
+        if (date) {
+            const dateObj = new Date(date + 'T00:00:00');
+            if (!isNaN(dateObj.getTime())) {
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const year = dateObj.getFullYear();
+                datePreview = `${day}/${month}/${year}`;
+            }
+        }
+        
         const timePreview = time || '09:00';
         const ratePreview = rate || '0';
         
@@ -497,39 +716,53 @@ $(document).ready(function() {
         addBlock();
     });
 
-    // Initial block render when checkbox is checked
-    $('input[name="set_timeline"]').click(function() {
+    // Checkbox toggle functionality
+    $('input[name="set_timeline"]').on('change', function() {
         if (this.checked) {
-            $('.timeline-date').attr('required', 'true');
-            $('.timeline-rate').attr('required', 'true');
-            $('.timeline-hrs').attr('required', 'true');
-            $('.timeline-time').attr('required', 'true');
-            $("#timeline_box").show();
-            $("#show_add").show();
-            if ($('.add_block').length === 0) {
+            $('.timeline-date').attr('required', 'required');
+            $('.timeline-rate').attr('required', 'required');
+            $('.timeline-time').attr('required', 'required');
+            $("#timeline_box").slideDown(300);
+            $("#show_add").slideDown(300);
+            if ($('.list_block .add_block').length === 0) {
                 addBlock(); // Append the first block
             }
         } else {
             $('.timeline-date').removeAttr('required');
             $('.timeline-rate').removeAttr('required');
-            $('.timeline-hrs').removeAttr('required');
             $('.timeline-time').removeAttr('required');
-            $("#timeline_box").hide();
-            $("#show_add").hide();
+            $("#timeline_box").slideUp(300);
+            $("#show_add").slideUp(300);
             $('.list_block').html(""); // Clear the blocks
         }
     });
+    
+    // Initialize checkbox state on page load
+    if ($('input[name="set_timeline"]').is(':checked')) {
+        $('.timeline-date').attr('required', 'required');
+        $('.timeline-rate').attr('required', 'required');
+        $('.timeline-time').attr('required', 'required');
+    }
 
     // Remove block when the remove button is clicked
     $("body").on("click", ".removeclass", function(e) {
+        e.preventDefault();
+        const block = $(this).closest('.add_block');
         if ($(".add_block").length > 1) {
-            $(this).parent('.add_block').remove();
+            block.fadeOut(300, function() {
+                $(this).remove();
+            });
         }
     });
 
-    // Initialize existing blocks
+    // Initialize existing blocks on page load
     $('.add_block').each(function() {
         updateTimelinePreview($(this));
+        
+        // Add event listeners to existing blocks
+        $(this).find('.timeline-date, .timeline-time, .timeline-rate').on('change', function() {
+            updateTimelinePreview($(this).closest('.add_block'));
+        });
     });
 });
 

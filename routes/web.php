@@ -118,6 +118,70 @@ Route::get('login', function() {
 
 Route::post('/save-news-letter', [HomeController::class, 'newsLetter'])->name('subscribed-news-letter');
 
+// Serve media files from storage or public directory - must be before other routes
+Route::get('/media/files/{path}', function ($path) {
+    // Decode the path in case it's URL encoded
+    $path = urldecode($path);
+    
+    // Check if path should use files-home directory (for specific images)
+    $filesHomeImages = ['15/139/594574664569c.PNG', '15/140/5945746652124.PNG'];
+    $useFilesHome = in_array($path, $filesHomeImages);
+    
+    // First try storage with files-home for specific images
+    if ($useFilesHome) {
+        $storagePath = storage_path('app/public/media/files-home/' . $path);
+        if (file_exists($storagePath) && is_file($storagePath)) {
+            $mimeType = mime_content_type($storagePath);
+            return response()->file($storagePath, ['Content-Type' => $mimeType]);
+        }
+    }
+    
+    // Then try storage with files directory
+    $storagePath = storage_path('app/public/media/files/' . $path);
+    if (file_exists($storagePath) && is_file($storagePath)) {
+        $mimeType = mime_content_type($storagePath);
+        return response()->file($storagePath, ['Content-Type' => $mimeType]);
+    }
+    
+    // Try public directory with files-home for specific images
+    if ($useFilesHome) {
+        $publicPath = public_path('media/files-home/' . $path);
+        if (file_exists($publicPath) && is_file($publicPath)) {
+            $mimeType = mime_content_type($publicPath);
+            return response()->file($publicPath, ['Content-Type' => $mimeType]);
+        }
+    }
+    
+    // Then try public directory with files
+    $publicPath = public_path('media/files/' . $path);
+    if (file_exists($publicPath) && is_file($publicPath)) {
+        $mimeType = mime_content_type($publicPath);
+        return response()->file($publicPath, ['Content-Type' => $mimeType]);
+    }
+    
+    // If file doesn't exist, try to use registration screen images as fallback
+    // Map missing images to available registration screenshots
+    $fallbackMap = [
+        '15/142/5945746612d55.PNG' => 'frontend/locumkit-template/img/registration-screen1.png',
+        '15/143/5945746627f90.PNG' => 'frontend/locumkit-template/img/registration-screen2.png',
+        '15/138/5945746638e1e.PNG' => 'frontend/locumkit-template/img/registration-screen1.png',
+        '15/139/594574664569c.PNG' => 'frontend/locumkit-template/img/registration-screen2.png',
+        '15/140/5945746652124.PNG' => 'frontend/locumkit-template/img/registration-screen1.png',
+        '15/141/594574666304f.PNG' => 'frontend/locumkit-template/img/registration-screen2.png',
+    ];
+    
+    if (isset($fallbackMap[$path])) {
+        $fallbackPath = public_path($fallbackMap[$path]);
+        if (file_exists($fallbackPath) && is_file($fallbackPath)) {
+            $mimeType = mime_content_type($fallbackPath);
+            return response()->file($fallbackPath, ['Content-Type' => $mimeType]);
+        }
+    }
+    
+    // If file doesn't exist, return 404
+    abort(404);
+})->where('path', '.*')->name('media.files');
+
 Route::get('/', [HomeController::class, 'index'])->name('index');
 Route::get('/how-to-answer-question-fre', [HomeController::class, 'questionFreelancer'])->name('how-to-answer-question-fre');
 Route::get('/how-to-answer-question-emp', [HomeController::class, 'questionEmployer'])->name('how-to-answer-question-emp');

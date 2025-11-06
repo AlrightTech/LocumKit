@@ -14,24 +14,39 @@ import "react-autocomplete-input/dist/bundle.css";
     user.profession
 } */
 function Register() {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) ?? {});
-    const [step, setStep] = useState(localStorage.getItem("step") ?? 1);
+    // Initialize step properly - ensure it's always a number, default to 1
+    const initialStep = localStorage.getItem("step");
+    const parsedStep = initialStep ? parseInt(initialStep, 10) : 1;
+    const validStep = (!isNaN(parsedStep) && parsedStep > 0) ? parsedStep : 1;
+    
+    const [user, setUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem("user");
+            return stored ? JSON.parse(stored) : {};
+        } catch (e) {
+            return {};
+        }
+    });
+    const [step, setStep] = useState(validStep);
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
         localStorage.setItem("user", JSON.stringify(user));
     }, [user]);
     useEffect(() => {
-        localStorage.setItem("step", step);
+        localStorage.setItem("step", step.toString());
         window.scrollTo(0, 140);
     }, [step]);
 
     useEffect(() => {
-        if (ERROR_MESSAGES_BAG && typeof ERROR_MESSAGES_BAG == "object" && Object.keys(ERROR_MESSAGES_BAG).length > 0) {
+        // Access global ERROR_MESSAGES_BAG from window object
+        const errorBag = window.ERROR_MESSAGES_BAG || ERROR_MESSAGES_BAG || {};
+        
+        if (errorBag && typeof errorBag == "object" && Object.keys(errorBag).length > 0) {
            
             let newErrors = {};
-            Object.keys(ERROR_MESSAGES_BAG).forEach((name) => {
-                let arr = ERROR_MESSAGES_BAG[name];
+            Object.keys(errorBag).forEach((name) => {
+                let arr = errorBag[name];
                 // Extract first element if it's an array, otherwise use as is
                 if (arr && typeof arr == "object" && Array.isArray(arr)) {
                     arr = arr[0] || arr;  // Get first error message from array
@@ -54,7 +69,7 @@ function Register() {
         console.log("errors", errors);
         console.log("step", step);
         console.log("user", user);
-        console.log("ERROR_MESSAGES_BAG", ERROR_MESSAGES_BAG);
+        console.log("ERROR_MESSAGES_BAG", errorBag);
     }, []);
 
     return (
@@ -72,12 +87,33 @@ function Register() {
 
 export default Register;
 
-if (document.getElementById("main-react-root")) {
-    const Index = ReactDOM.createRoot(document.getElementById("main-react-root"));
+// Initialize React app when DOM is ready
+function initializeRegisterApp() {
+    const rootElement = document.getElementById("main-react-root");
+    
+    if (rootElement) {
+        // Clear any existing content
+        rootElement.innerHTML = '';
+        
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(
+            <React.StrictMode>
+                <Register />
+            </React.StrictMode>
+        );
+        
+        console.log("Registration form initialized successfully");
+    } else {
+        console.error("Registration form root element (#main-react-root) not found");
+        // Retry after a short delay in case DOM isn't ready yet
+        setTimeout(initializeRegisterApp, 100);
+    }
+}
 
-    Index.render(
-        <React.StrictMode>
-            <Register />
-        </React.StrictMode>
-    );
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeRegisterApp);
+} else {
+    // DOM is already ready
+    initializeRegisterApp();
 }

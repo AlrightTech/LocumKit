@@ -27,7 +27,7 @@
             </div>
         </div>
         <div class="page-content" style="margin-top: -10px">
-            <form class="relative form-horizontal" action="{{route('admin.userfeedback.update', $userFeedback->jobfeedback->id)}}" method="post"
+            <form class="relative form-horizontal" action="{{route('admin.userfeedback.update', $userFeedback->jobFeedback ? $userFeedback->jobFeedback->id : $userFeedback->id)}}" method="post"
                 enctype="application/x-www-form-urlencoded">
                 @csrf
                 @method('PUT')
@@ -36,7 +36,7 @@
                         <label class="required control-label col-lg-2" for="feedback_from">Feedback From</label>
                         <div class="col-lg-10">
                             <p class="form-control" readonly="" style="text-transform: capitalize;">
-                                {{ $userFeedback['user_type'] == 'employer' ? $userFeedback->jobFeedback->employer->firstname : $userFeedback->jobFeedback->freelancer->firstname }}
+                                {{ $userFeedback->jobFeedback && $userFeedback->jobFeedback->employer && $userFeedback->jobFeedback->freelancer ? ($userFeedback['user_type'] == 'employer' ? ($userFeedback->jobFeedback->employer->firstname ?? 'N/A') : ($userFeedback->jobFeedback->freelancer->firstname ?? 'N/A')) : 'N/A' }}
                             </p>
                         </div>
                     </div>
@@ -44,7 +44,7 @@
                         <label class="required control-label col-lg-2" for="feedback_to">Feedback To</label>
                         <div class="col-lg-10">
                             <p class="form-control" readonly="" style="text-transform: capitalize;">
-                                {{ $userFeedback['user_type'] == 'employer' ?$userFeedback->jobFeedback->freelancer->firstname : $userFeedback->jobFeedback->employer->firstname }}
+                                {{ $userFeedback->jobFeedback && $userFeedback->jobFeedback->employer && $userFeedback->jobFeedback->freelancer ? ($userFeedback['user_type'] == 'employer' ? ($userFeedback->jobFeedback->freelancer->firstname ?? 'N/A') : ($userFeedback->jobFeedback->employer->firstname ?? 'N/A')) : 'N/A' }}
                             </p>
                         </div>
                     </div>
@@ -77,30 +77,34 @@
                                 <a href="javascript:void(0)" id="show-details-feedback">Show Details</a>
                             </div>
                             <div id="details-feedback" style="display:block;">
-                                @foreach (json_decode($userFeedback->jobfeedback->feedback) as $item)
-                                    <div class="feedback-qus-ans">
-                                        <p class="qus"><span>Qus. {{ $loop->iteration }})</span>{{ $item->qus }}</p>
-                                        <div class="user-rating"></div>
-                                        <div style="clear:both">
-                                            <div class="rating pull-left" id="note-rate-{{ $loop->iteration }}">
-                                                @for ($i = 5; $i >= 1; $i--)
-                                                    <span>
-                                                        <input type="radio" name="rating{{ $loop->iteration }}"
-                                                            value="{{ $i }}"
-                                                            @if ($i == $item->qusRate) checked @endif>
-                                                        <label for="str{{ $i }}"></label>
-                                                    </span>
-                                                @endfor
-                                                <input type="hidden" name="ratevalue[]"
-                                                    id="rate-val-{{ $loop->iteration }}" value="{{ $item->qusRate }}">
-                                                <input type="hidden" name="fdqus[]" id="fd-qus-emp-{{ $loop->iteration }}"
-                                                    value="{{ $item->qus }}">
-                                                <input type="hidden" name="fdqusid[]"
-                                                    id="fd-qus-id-{{ $loop->iteration }}" value="{{ $item->qusId }}">
+                                @if($userFeedback->jobFeedback && $userFeedback->jobFeedback->feedback)
+                                    @foreach (json_decode($userFeedback->jobFeedback->feedback) as $item)
+                                        <div class="feedback-qus-ans">
+                                            <p class="qus"><span>Qus. {{ $loop->iteration }})</span>{{ $item->qus ?? 'N/A' }}</p>
+                                            <div class="user-rating"></div>
+                                            <div style="clear:both">
+                                                <div class="rating pull-left" id="note-rate-{{ $loop->iteration }}">
+                                                    @for ($i = 5; $i >= 1; $i--)
+                                                        <span>
+                                                            <input type="radio" name="rating{{ $loop->iteration }}"
+                                                                value="{{ $i }}"
+                                                                @if ($i == ($item->qusRate ?? 0)) checked @endif>
+                                                            <label for="str{{ $i }}"></label>
+                                                        </span>
+                                                    @endfor
+                                                    <input type="hidden" name="ratevalue[]"
+                                                        id="rate-val-{{ $loop->iteration }}" value="{{ $item->qusRate ?? 0 }}">
+                                                    <input type="hidden" name="fdqus[]" id="fd-qus-emp-{{ $loop->iteration }}"
+                                                        value="{{ $item->qus ?? '' }}">
+                                                    <input type="hidden" name="fdqusid[]"
+                                                        id="fd-qus-id-{{ $loop->iteration }}" value="{{ $item->qusId ?? '' }}">
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @endforeach
+                                    @endforeach
+                                @else
+                                    <p>No feedback details available.</p>
+                                @endif
                                 <input type="hidden" name="total-rates" id="total-rates" value="3">
                                 <div class="feedback-comment">
                                     <label class="required control-label " for="feedback_comment">Feedback Comment</label>

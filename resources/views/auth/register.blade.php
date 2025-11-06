@@ -169,15 +169,27 @@
 @push('scripts')
 
     <script>
-        const questions = @json($questions ?? []);
-        const roles = @json($roles ?? []);
-        const professions = @json($professions ?? []);
-        const GOOGLE_RECAPTCHA_SITE_KEY = `{{ config('app.google_recaptcha_site_key') ?? '' }}`;
-        const AVAILABLE_TAGS = @json($site_towns_available_tags ?? []);
-        const REGISTRATION_VALIDATION_URI = `{{ url('/ajax/registration-info-check') }}`;
-        const CSRF_TOKEN = `{{ csrf_token() }}`;
-        const REGISTER_FORM_URI = `{{ url('/register') }}`;
-        const ERROR_MESSAGES_BAG = @json((isset($errors) && is_object($errors) && method_exists($errors, 'jsonSerialize')) ? $errors->jsonSerialize() : []);
+        // Make these global so React components can access them
+        window.questions = @json($questions ?? []);
+        window.roles = @json($roles ?? []);
+        window.professions = @json($professions ?? []);
+        window.GOOGLE_RECAPTCHA_SITE_KEY = `{{ config('app.google_recaptcha_site_key') ?? '' }}`;
+        window.AVAILABLE_TAGS = @json($site_towns_available_tags ?? []);
+        window.REGISTRATION_VALIDATION_URI = `{{ url('/ajax/registration-info-check') }}`;
+        window.CSRF_TOKEN = `{{ csrf_token() }}`;
+        window.REGISTER_FORM_URI = `{{ url('/register') }}`;
+        window.ERROR_MESSAGES_BAG = @json((isset($errors) && is_object($errors) && method_exists($errors, 'jsonSerialize')) ? $errors->jsonSerialize() : []);
+        
+        // Also keep const for backward compatibility
+        const questions = window.questions;
+        const roles = window.roles;
+        const professions = window.professions;
+        const GOOGLE_RECAPTCHA_SITE_KEY = window.GOOGLE_RECAPTCHA_SITE_KEY;
+        const AVAILABLE_TAGS = window.AVAILABLE_TAGS;
+        const REGISTRATION_VALIDATION_URI = window.REGISTRATION_VALIDATION_URI;
+        const CSRF_TOKEN = window.CSRF_TOKEN;
+        const REGISTER_FORM_URI = window.REGISTER_FORM_URI;
+        const ERROR_MESSAGES_BAG = window.ERROR_MESSAGES_BAG;
     </script>
 
     <script>

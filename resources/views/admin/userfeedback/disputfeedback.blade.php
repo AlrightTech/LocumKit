@@ -76,12 +76,20 @@
                             @foreach ($jobFeedbackDispute as $key => $data)
                                 <tr>
                                     <td style="text-transform: capitalize;">{{ $key + 1 }}</td>
-                                    <td style="text-transform: capitalize;">#{{ $data->jobfeedback->job_id }}</td>
+                                    <td style="text-transform: capitalize;">#{{ $data->jobfeedback->job_id ?? 'N/A' }}</td>
                                     <td style="text-transform: capitalize;">
-                                        {{ $controller?->role == 'freelancer' ? $data->jobfeedback?->freelancer?->firstname : $data->jobfeedback?->employer?->firstname }}
+                                        @if($data->jobfeedback)
+                                            {{ $controller->role == 'freelancer' ? ($data->jobfeedback->freelancer->firstname ?? 'N/A') : ($data->jobfeedback->employer->firstname ?? 'N/A') }}
+                                        @else
+                                            N/A
+                                        @endif
                                     </td>
-                                    <td style="text-transform: capitalize;">`
-                                        {{ $controller?->role == 'freelancer' ? $data->jobfeedback?->employer?->firstname : $data->jobfeedback?->freelancer?->firstname }}
+                                    <td style="text-transform: capitalize;">
+                                        @if($data->jobfeedback)
+                                            {{ $controller->role == 'freelancer' ? ($data->jobfeedback->employer->firstname ?? 'N/A') : ($data->jobfeedback->freelancer->firstname ?? 'N/A') }}
+                                        @else
+                                            N/A
+                                        @endif
                                     </td>
                                     <td>
                                         <div id="stars-rating">

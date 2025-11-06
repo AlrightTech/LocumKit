@@ -78,10 +78,18 @@
                                     <td style="text-transform: capitalize;">{{ $key + 1 }}</td>
                                     <td style="text-transform: capitalize;">#{{ $data->job_id }}</td>
                                     <td style="text-transform: capitalize;">
-                                        {{ $controller->role == 'freelancer' ? $data->freelancer->firstname : $data->employer->firstname }}
+                                        @if($controller->role == 'freelancer')
+                                            {{ $data->freelancer ? ($data->freelancer->firstname ?? 'N/A') : 'N/A' }}
+                                        @else
+                                            {{ $data->employer ? ($data->employer->firstname ?? 'N/A') : 'N/A' }}
+                                        @endif
                                     </td>
                                     <td style="text-transform: capitalize;">
-                                        {{ $controller->role == 'freelancer' ? $data->employer->firstname : $data->freelancer->firstname }}
+                                        @if($controller->role == 'freelancer')
+                                            {{ $data->employer ? ($data->employer->firstname ?? 'N/A') : 'N/A' }}
+                                        @else
+                                            {{ $data->freelancer ? ($data->freelancer->firstname ?? 'N/A') : 'N/A' }}
+                                        @endif
                                     </td>
                                     <td>
                                         <div id="stars-rating">

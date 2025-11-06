@@ -652,7 +652,10 @@ function Step3({ user, setUser, setStep }) {
                                     </div>
                                     <div className="modal-body">
                                         <h3 id="load_list" style={{ display: "none" }}>
-                                            <img src="/frontend/locumkit-template/img/loader.gif" /> Please wait...
+                                            <img 
+                                                src="/frontend/images/loader.gif" 
+                                                alt="Loading..." 
+                                            /> Please wait...
                                         </h3>
                                         <div id="store_list_div"></div>
                                     </div>

@@ -29,8 +29,11 @@
                                 class="form-control" 
                                 id="finance_year" 
                                 value="" 
-                                oninput="if(this.value.length > 9) this.value = this.value.slice(0, 9);" 
-                                title="Please enter a number with up to 9 digits" 
+                                min="1900"
+                                max="{{ date('Y') + 1 }}"
+                                oninput="if(this.value.length > 4) this.value = this.value.slice(0, 4);" 
+                                title="Please enter a 4-digit year (e.g., 2024)" 
+                                placeholder="e.g., 2024"
                                 required>
                         </div>  
                     </div>

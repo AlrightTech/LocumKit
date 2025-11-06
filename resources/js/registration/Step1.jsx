@@ -6,6 +6,18 @@ function Step1({ user, setUser, setStep }) {
 
     const [roleError, setRoleError] = useState("");
     const [professionError, setProfessionError] = useState("");
+    
+    // Access global variables from window object
+    const roles = (window.roles && Array.isArray(window.roles)) ? window.roles : [];
+    const professions = (window.professions && Array.isArray(window.professions)) ? window.professions : [];
+    
+    // Log for debugging if data is missing
+    if (roles.length === 0) {
+        console.warn("No roles available. Please ensure roles are loaded from the server.");
+    }
+    if (professions.length === 0) {
+        console.warn("No professions available. Please ensure professions are loaded from the server.");
+    }
 
     const handleNextStep = () => {
         setRoleError("");
@@ -45,11 +57,13 @@ function Step1({ user, setUser, setStep }) {
                     <div className="col-md-7 col-sm-7 col-xs-12 rgt">
                         <select name="role" className="form-control input-text width-100" defaultValue={user.role ?? ""} id="user_type" ref={roleRef}>
                             <option value="">Select</option>
-                            {roles.map((role) => (
+                            {roles && roles.length > 0 ? roles.map((role) => (
                                 <option key={role.id} value={role.id}>
                                     I am {role.name}
                                 </option>
-                            ))}
+                            )) : (
+                                <option value="" disabled>No roles available</option>
+                            )}
                         </select>
                         {roleError && <div className="css_error">{roleError}</div>}
                     </div>
@@ -63,11 +77,13 @@ function Step1({ user, setUser, setStep }) {
                     <div className="col-md-7 col-sm-7 col-xs-12 rgt">
                         <select className="form-control input-text width-100" name="profession" defaultValue={user.profession ?? ""} id="profession_type" ref={professionRef}>
                             <option value="">Select</option>
-                            {professions.map((profession) => (
+                            {professions && professions.length > 0 ? professions.map((profession) => (
                                 <option key={profession.id} value={profession.id}>
                                     {profession.name}
                                 </option>
-                            ))}
+                            )) : (
+                                <option value="" disabled>No professions available</option>
+                            )}
                         </select>
                         {professionError && <div className="css_error">{professionError}</div>}
                     </div>
@@ -120,30 +136,66 @@ function Step1({ user, setUser, setStep }) {
                         <div className="item">
                             <div className="row">
                                 <div className="col-md-6 col-sm-6 col-xs-6">
-                                    <img src="/media/files/15/142/5945746612d55.PNG" alt="screen1" title="screen1" width="500px" />
+                                    <img 
+                                        src="/media/files/15/142/5945746612d55.PNG" 
+                                        alt="screen1" 
+                                        title="screen1" 
+                                        width="500px" 
+                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                    />
                                 </div>
                                 <div className="col-md-6 col-sm-6 col-xs-6">
-                                    <img src="/media/files/15/143/5945746627f90.PNG" alt="screen2" title="screen2" width="500px" />
+                                    <img 
+                                        src="/media/files/15/143/5945746627f90.PNG" 
+                                        alt="screen2" 
+                                        title="screen2" 
+                                        width="500px" 
+                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                    />
                                 </div>
                             </div>
                         </div>
                         <div className="item active">
                             <div className="row">
                                 <div className="col-md-6 col-sm-6 col-xs-6">
-                                    <img src="/media/files/15/138/5945746638e1e.PNG" alt="screen1" title="screen1" width="500px" />
+                                    <img 
+                                        src="/media/files/15/138/5945746638e1e.PNG" 
+                                        alt="screen1" 
+                                        title="screen1" 
+                                        width="500px" 
+                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                    />
                                 </div>
                                 <div className="col-md-6 col-sm-6 col-xs-6">
-                                    <img src="/media/files/15/139/594574664569c.PNG" alt="screen2" title="screen2" width="500px" />
+                                    <img 
+                                        src="/media/files/15/139/594574664569c.PNG" 
+                                        alt="screen2" 
+                                        title="screen2" 
+                                        width="500px" 
+                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                    />
                                 </div>
                             </div>
                         </div>
                         <div className="item">
                             <div className="row">
                                 <div className="col-md-6 col-sm-6 col-xs-6">
-                                    <img src="/media/files/15/140/5945746652124.PNG" alt="screen1" title="screen1" width="500px" />
+                                    <img 
+                                        src="/media/files/15/140/5945746652124.PNG" 
+                                        alt="screen1" 
+                                        title="screen1" 
+                                        width="500px" 
+                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                    />
                                 </div>
                                 <div className="col-md-6 col-sm-6 col-xs-6">
-                                    <img src="/media/files/15/141/594574666304f.PNG" alt="screen2" title="screen2" width="500px" />
+                                    <img 
+                                        src="/media/files/15/141/594574666304f.PNG" 
+                                        alt="screen2" 
+                                        title="screen2" 
+                                        width="500px" 
+                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                    />
                                 </div>
                             </div>
                         </div>

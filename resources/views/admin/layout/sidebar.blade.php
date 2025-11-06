@@ -281,6 +281,25 @@
         </li>
         @endcando
 
+        {{-- Contact Us Management - Always visible for admins --}}
+        @if(auth()->check() && auth()->user()->user_acl_role_id == 1)
+        <li id="complaints_sup" class="{{ request()->routeIs('admin.complaints.*') ? 'open active' : '' }}">
+            <a class="menu-toggle" href="#">
+                <i class="glyphicon glyphicon-envelope"></i>
+                <span class="menu-text">Contact Us</span>
+                <span class="caret"></span>
+            </a>
+            <ul class="submenu" id="complaints_sub">
+                <li>
+                    <a href="{{ route('admin.complaints.index') }}" class="{{ request()->routeIs('admin.complaints.index') ? 'active' : '' }}">
+                        <i class="glyphicon glyphicon-arrow-right {{ request()->routeIs('admin.complaints.index') ? 'd-block color' : '' }}"></i>
+                        View Messages
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @endif
+
         @cando('finance/list')
         <li class="{{ request()->routeIs('finance.record','tax.list','nitax.list') ? 'open active' : '' }}">
             <a class="menu-toggle" href="#">

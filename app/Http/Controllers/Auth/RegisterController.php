@@ -514,7 +514,7 @@ class RegisterController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
             ],
-            'address' => ['required', 'string', 'min:10', 'max:255'],
+            'address' => ['required', 'string'],
             'city' => ['required', 'string', 'min:2', 'max:100'],
             'zip' => ['required', 'string', 'regex:/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i'],
         ];
@@ -549,7 +549,6 @@ class RegisterController extends Controller
             'password.confirmed' => 'Password confirmation does not match.',
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
             'address.required' => 'Address is required.',
-            'address.min' => 'Address must be at least 10 characters.',
             'city.required' => 'Town/City is required.',
             'city.min' => 'Town/City must be at least 2 characters.',
             'zip.required' => 'Postcode is required.',

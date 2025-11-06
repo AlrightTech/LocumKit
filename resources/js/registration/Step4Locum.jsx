@@ -99,7 +99,12 @@ function Step4Locum({ user, setUser, setStep }) {
                                 <div className="col-md-3 col-sm-3 package-price-box" id="package-4">
                                     <div className="set-pack-icon">
                                         <div className="set-pack-price">
-                                            <img src="/frontend/locumkit-template/img/logo.png" title="Locumkit" alt="Locumkit" />
+                                            <img 
+                                                src="/frontend/locumkit-template/img/logo.png" 
+                                                title="Locumkit" 
+                                                alt="Locumkit" 
+                                                style={{ maxWidth: '100%', height: 'auto' }}
+                                            />
                                         </div>
                                     </div>
                                 </div>

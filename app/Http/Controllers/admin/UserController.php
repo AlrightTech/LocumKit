@@ -161,8 +161,32 @@ class UserController extends Controller
             $newpassword  = $request->password;
             $user->password = Hash::make($request->password);
             
-            if($user->password){
-                $user->notify(new PasswordChangeNotification($newpassword));
+            // Send password change notification for Locum users
+            // Wrap in try-catch to handle mail connection errors gracefully
+            if($user->password && $user->user_acl_role_id == User::USER_ROLE_LOCUM){
+                try {
+                    $user->notify(new PasswordChangeNotification($newpassword));
+                    \Illuminate\Support\Facades\Log::info("Password change notification sent successfully to Locum user ID: {$user->id}");
+                } catch (\Exception $e) {
+                    // Log mail connection errors but don't break the password update flow
+                    if (str_contains($e->getMessage(), 'Connection could not be established') ||
+                        str_contains($e->getMessage(), 'Unable to connect') ||
+                        str_contains($e->getMessage(), 'stream_socket_client') ||
+                        str_contains($e->getMessage(), 'mail.locumkit.com')) {
+                        \Illuminate\Support\Facades\Log::warning("Mail connection error when sending password change notification to Locum user ID: {$user->id}. Error: " . $e->getMessage());
+                    } else {
+                        \Illuminate\Support\Facades\Log::error("Failed to send password change notification to Locum user ID: {$user->id}. Error: " . $e->getMessage());
+                    }
+                    // Password update continues - notification failure is logged but doesn't block the update
+                }
+            } elseif($user->password) {
+                // For non-Locum users, send notification (existing behavior)
+                try {
+                    $user->notify(new PasswordChangeNotification($newpassword));
+                } catch (\Exception $e) {
+                    // Log but don't break for other users too (optional)
+                    \Illuminate\Support\Facades\Log::warning("Failed to send password change notification to user ID: {$user->id}. Error: " . $e->getMessage());
+                }
             }
         }
 

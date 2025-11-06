@@ -37,14 +37,14 @@
 
                     <div class="col-lg-10">
                         <p class="form-control" readonly style="text-transform: capitalize;">
-                            {{ $feedback->employer->firstname }}</p>
+                            {{ $feedback->employer ? ($feedback->employer->firstname ?? 'N/A') : 'N/A' }}</p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="required control-label col-lg-2" for="feedback_to">Feedback To</label>
                     <div class="col-lg-10">
                         <p class="form-control" readonly style="text-transform: capitalize;">
-                            {{ $feedback->freelancer->firstname }}</p>
+                            {{ $feedback->freelancer ? ($feedback->freelancer->firstname ?? 'N/A') : 'N/A' }}</p>
                     </div>
                 </div>
 

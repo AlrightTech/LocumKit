@@ -201,97 +201,42 @@ class FinanceController extends Controller
     }
 
     public function getAvailableYear(){
-
-        $user = User::where('user_acl_role_id','2')->get();
-        $year = [];
-        foreach ($user as $iterator => $value) {
-            $getUser = FinancialYear::where('user_id', $value->id)->get()->ToArray();
-            if($getUser){
-                $getStartMonth = $this->setMonth($getUser['0']['month_start']);
-                $getEndMonth = $this->setMonth($getUser['0']['month_end']);
-            }
-            if($getUser != null){
-                $incomeTransactions = FinanceIncome::where('freelancer_id', $value->id)->get()->toArray();
-                $expenseTransactions = FinanceExpense::where('freelancer_id', $value->id)->get()->toArray();
-                
-                $transactions = array_values(array_merge($incomeTransactions, $expenseTransactions));
-                
-                if($transactions != null){
-                    foreach ($transactions as $key => $tranaction) {
-                        $carbonMonth = Carbon::parse($tranaction['job_date']);
-
-                        $completeYear = $carbonMonth->format('Y');
-                        $years = array($completeYear);
-                        
-
-                        if ($carbonMonth->format('m') >= $getUser['0']['month_start']) {
-                            $currentYear = $completeYear;
-                        
-                            if (array_key_exists($currentYear, $year)) {
-                                $existingUserId = array_search($value['id'], array_column($year[$currentYear], 'user_id'));
-                        
-                                if ($existingUserId === false) {
-                                    $year[$currentYear][] = [
-                                        'user_id' => $value['id'],
-                                        'start_month' => $getStartMonth,
-                                        'end_month' => $getEndMonth,
-                                        'fin_year' => $currentYear,
-                                        'user_type' => $getUser[0]['user_type'],
-                                        'login' => $value['login'],
-                                        'user_acl_profession_id' => $value['user_acl_profession_id']
-                                    ];
-                                }
-                            } else {
-                                $year[$currentYear] = [
-                                    [
-                                        'user_id' => $value['id'],
-                                        'start_month' => $getStartMonth,
-                                        'end_month' => $getEndMonth,
-                                        'fin_year' => $currentYear,
-                                        'user_type' => $getUser[0]['user_type'],
-                                        'login' => $value['login'],
-                                        'user_acl_profession_id' => $value['user_acl_profession_id']
-                                    ],
-                                ];
-                            }
-                        } else {
-                            $previousYear = $completeYear - 1;
-                        
-                            if (array_key_exists($previousYear, $year)) {
-                                $existingUserId = array_search($value['id'], array_column($year[$previousYear], 'user_id'));
-                        
-                                if ($existingUserId === false) {
-                                    $year[$previousYear][] = [
-                                        'user_id' => $value['id'],
-                                        'start_month' => $getStartMonth,
-                                        'end_month' => $getEndMonth,
-                                        'fin_year' => $previousYear,
-                                        'user_type' => $getUser[0]['user_type'],
-                                        'login' => $value['login'],
-                                        'user_acl_profession_id' => $value['user_acl_profession_id']
-                                    ];
-                                }
-                            } else {
-                                $year[$previousYear] = [
-                                    [
-                                        'user_id' => $value['id'],
-                                        'start_month' => $getStartMonth,
-                                        'end_month' => $getEndMonth,
-                                        'fin_year' => $previousYear,
-                                        'user_type' => $getUser[0]['user_type'],
-                                        'login' => $value['login'],
-                                        'user_acl_profession_id' => $value['user_acl_profession_id']
-                                    ],
-                                ];
-                            }
-                        }
-                    }
-                }
+        // Get financial year ranges from tax settings (FinanceTaxRecord and FinanceNiTaxRecord)
+        $tax_years = FinanceTaxRecord::whereNotNull('finance_year')
+            ->where('finance_year', '!=', '')
+            ->distinct()
+            ->pluck('finance_year')
+            ->toArray();
+        
+        $ni_tax_years = FinanceNiTaxRecord::whereNotNull('finance_year')
+            ->where('finance_year', '!=', '')
+            ->distinct()
+            ->pluck('finance_year')
+            ->toArray();
+        
+        // Merge and get unique financial year ranges
+        $financial_year_ranges = array_unique(array_merge($tax_years, $ni_tax_years));
+        
+        // If no years found from tax settings, generate a default list of financial year ranges
+        if (empty($financial_year_ranges)) {
+            $currentYear = (int) date('Y');
+            $currentMonth = (int) date('m');
+            
+            // If current month is before April, the current financial year started last year
+            $financial_year_start = $currentMonth >= 4 ? $currentYear : $currentYear - 1;
+            
+            // Generate financial year ranges from 5 years ago to 1 year ahead
+            for ($i = -5; $i <= 1; $i++) {
+                $start_year = $financial_year_start + $i;
+                $end_year = $start_year + 1;
+                $financial_year_ranges[] = $start_year . '-' . $end_year;
             }
         }
         
-        $available_year = array_keys($year);
-        return $available_year;
+        // Sort descending (newest first)
+        rsort($financial_year_ranges);
+        
+        return $financial_year_ranges;
     }
     
     public function record(Request $request)
@@ -303,99 +248,135 @@ class FinanceController extends Controller
         $available_year = $this->getAvailableYear();
        
         if($request->y != null){
-            //dd($request->all());
+            // Parse financial year range (e.g., "2023-2024")
+            $selected_year_range = $request->y;
+            $year_parts = explode('-', $selected_year_range);
+            $start_year = isset($year_parts[0]) ? (int) $year_parts[0] : null;
+            $end_year = isset($year_parts[1]) ? (int) $year_parts[1] : null;
+            
+            // Get tax settings for the selected financial year range
+            $finance_tax_record = FinanceTaxRecord::where('finance_year', $selected_year_range)->first();
+            $finance_ni_tax = FinanceNiTaxRecord::where('finance_year', $selected_year_range)->first();
+            
             $user = [];
             $year = [];
-             foreach ($users as $iterator => $value) {
-                $getUser = FinancialYear::where('user_id', $value->id)->get()->toArray();
             
-                if ($getUser != null) {
-                    $getStartMonth = $this->setMonth($getUser[0]['month_start']);
-                    $getEndMonth = $this->setMonth($getUser[0]['month_end']);
-            
-                    // Dynamically filter transactions for the requested year
-                    $incomeTransactions = FinanceIncome::where('freelancer_id', $value->id)
-                        ->whereYear('job_date', $request->y)
-                        ->get()
-                        ->toArray();
-                    $expenseTransactions = FinanceExpense::where('freelancer_id', $value->id)
-                        ->whereYear('job_date', $request->y)
-                        ->get()
-                        ->toArray();
-            
-                    $transactions = array_values(array_merge($incomeTransactions, $expenseTransactions));
-            
-                    if ($transactions != null) {
-                        foreach ($transactions as $key => $transaction) {
-                            $carbonMonth = Carbon::parse($transaction['job_date']);
-                            $transactionYear = $carbonMonth->format('Y');
-            
-                            // Determine financial year dynamically based on start month
-                            if ($carbonMonth->format('m') >= $getUser[0]['month_start']) {
-                                $currentYear = $transactionYear;
-                            } else {
-                                $currentYear = $transactionYear - 1;
-                            }
-            
-                            // Skip if the calculated financial year doesn't match the requested year
-                            if ($currentYear != $request->y) {
-                                continue;
-                            }
-            
-                            // Handle financial year grouping
-                            if (array_key_exists($currentYear, $year)) {
-                                $existingUserId = array_search($value['id'], array_column($year[$currentYear], 'user_id'));
-            
-                                if ($existingUserId === false) {
-                                    $year[$currentYear][] = [
-                                        'user_id' => $value['id'],
-                                        'start_month' => $getStartMonth,
-                                        'end_month' => $getEndMonth,
-                                        'fin_year' => $currentYear,
-                                        'user_type' => $getUser[0]['user_type'],
-                                        'login' => $value['login'],
-                                        'user_acl_profession_id' => $value['user_acl_profession_id']
-                                    ];
+            if ($start_year && $end_year) {
+                // Calculate date range for the financial year (April to March)
+                $start_date = $start_year . '-04-01';
+                $end_date = $end_year . '-03-31';
+                
+                foreach ($users as $iterator => $value) {
+                    $getUser = FinancialYear::where('user_id', $value->id)->get()->toArray();
+                
+                    if ($getUser != null && !empty($getUser)) {
+                        $getStartMonth = $this->setMonth($getUser[0]['month_start']);
+                        $getEndMonth = $this->setMonth($getUser[0]['month_end']);
+                
+                        // Check if user has any transactions in the selected financial year range
+                        $hasTransactions = false;
+                        
+                        // Filter transactions within the financial year range
+                        $incomeTransactions = FinanceIncome::where('freelancer_id', $value->id)
+                            ->whereBetween('job_date', [$start_date, $end_date])
+                            ->get()
+                            ->toArray();
+                        $expenseTransactions = FinanceExpense::where('freelancer_id', $value->id)
+                            ->whereBetween('job_date', [$start_date, $end_date])
+                            ->get()
+                            ->toArray();
+                
+                        $transactions = array_values(array_merge($incomeTransactions, $expenseTransactions));
+                
+                        // Check if any transaction falls within the selected financial year
+                        if (!empty($transactions)) {
+                            foreach ($transactions as $key => $transaction) {
+                                $carbonMonth = Carbon::parse($transaction['job_date']);
+                                $transactionYear = $carbonMonth->format('Y');
+                
+                                // Determine financial year dynamically based on start month
+                                if ($carbonMonth->format('m') >= $getUser[0]['month_start']) {
+                                    $currentYear = $transactionYear;
+                                } else {
+                                    $currentYear = $transactionYear - 1;
                                 }
-                            } else {
-                                $year[$currentYear] = [
-                                    [
-                                        'user_id' => $value['id'],
-                                        'start_month' => $getStartMonth,
-                                        'end_month' => $getEndMonth,
-                                        'fin_year' => $currentYear,
-                                        'user_type' => $getUser[0]['user_type'],
-                                        'login' => $value['login'],
-                                        'user_acl_profession_id' => $value['user_acl_profession_id']
-                                    ],
+                
+                                // Create financial year range key (e.g., "2023-2024")
+                                $fin_year_range = ($currentYear) . '-' . ($currentYear + 1);
+                
+                                // If transaction matches the selected financial year, mark as having transactions
+                                if ($fin_year_range == $selected_year_range) {
+                                    $hasTransactions = true;
+                                    break; // Found at least one matching transaction
+                                }
+                            }
+                        }
+                        
+                        // Add user to the list if they have financial year settings
+                        // Show all users with financial year settings, even if they don't have transactions yet
+                        // This allows admins to access profit/loss and balance sheet pages
+                        if (array_key_exists($selected_year_range, $year)) {
+                            $existingUserId = array_search($value['id'], array_column($year[$selected_year_range], 'user_id'));
+            
+                            if ($existingUserId === false) {
+                                $year[$selected_year_range][] = [
+                                    'user_id' => $value->id,
+                                    'start_month' => $getStartMonth,
+                                    'end_month' => $getEndMonth,
+                                    'fin_year' => $selected_year_range,
+                                    'user_type' => $getUser[0]['user_type'],
+                                    'login' => $value->login,
+                                    'user_acl_profession_id' => $value->user_acl_profession_id
                                 ];
                             }
+                        } else {
+                            $year[$selected_year_range] = [
+                                [
+                                    'user_id' => $value->id,
+                                    'start_month' => $getStartMonth,
+                                    'end_month' => $getEndMonth,
+                                    'fin_year' => $selected_year_range,
+                                    'user_type' => $getUser[0]['user_type'],
+                                    'login' => $value->login,
+                                    'user_acl_profession_id' => $value->user_acl_profession_id
+                                ],
+                            ];
                         }
                     }
                 }
             }
+            
             if ($request->filled('search')) {
-    $search = strtolower($request->search);
+                $search = strtolower($request->search);
 
-    // Filter $year array manually
-    foreach ($year as $finYear => &$users) {
-        $users = array_filter($users, function ($user) use ($search) {
-            return strpos(strtolower($user['login']), $search) !== false ||
-                   strpos((string) $user['user_id'], $search) !== false;
-        });
+                // Filter $year array manually
+                foreach ($year as $finYear => &$users) {
+                    $users = array_filter($users, function ($user) use ($search) {
+                        return strpos(strtolower($user['login']), $search) !== false ||
+                               strpos((string) $user['user_id'], $search) !== false;
+                    });
 
-        // Re-index the array after filtering
-        $users = array_values($users);
-    }
+                    // Re-index the array after filtering
+                    $users = array_values($users);
+                }
 
-    // Remove any empty financial year groups after filtering
-    $year = array_filter($year);
-}
+                // Remove any empty financial year groups after filtering
+                $year = array_filter($year);
+            }
 
             rsort($available_year);
-            return view('admin.finance.record', compact('user','professions', 'year', 'available_year'));
+            // Initialize tax records variables if not set
+            $finance_tax_record = $finance_tax_record ?? null;
+            $finance_ni_tax = $finance_ni_tax ?? null;
+            $selected_year_range = $selected_year_range ?? null;
+            
+            return view('admin.finance.record', compact('user','professions', 'year', 'available_year', 'finance_tax_record', 'finance_ni_tax', 'selected_year_range'));
         }
         else{
+            // Initialize variables when no year is selected
+            $finance_tax_record = null;
+            $finance_ni_tax = null;
+            $selected_year_range = null;
             $user = User::where('user_acl_role_id','2')->get();
             $year = [];
             foreach ($user as $iterator => $value) {
@@ -522,7 +503,7 @@ class FinanceController extends Controller
     $year = array_filter($year);
 }
 
-            return view('admin.finance.record', compact('user','professions', 'year', 'available_year'));
+            return view('admin.finance.record', compact('user','professions', 'year', 'available_year', 'finance_tax_record', 'finance_ni_tax', 'selected_year_range'));
         }
     }
 
@@ -717,7 +698,7 @@ class FinanceController extends Controller
     }
     public function nitaxStore(Request $request){
         $validatedData = $request->validate([
-            'finance_year' => 'required|digits:9|integer|min:1900|max:' . (date('Y') + 1),
+            'finance_year' => 'required|digits:4|integer|min:1900|max:' . (date('Y') + 1),
             'c4_min_ammount_1' => 'required|numeric|min:0',
             'c4_min_ammount_tax_1' => 'required|numeric|min:0',
             'c4_min_ammount_2' => 'required|numeric|min:0',

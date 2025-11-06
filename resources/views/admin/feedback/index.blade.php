@@ -81,8 +81,8 @@
                                 <tr>
                                     <td style="text-transform: capitalize;">{{ $allfeedback->id }}</td>
                                     <td style="text-transform: capitalize;">{{ $allfeedback->job_id }}</td>
-                                    <td style="text-transform: capitalize;">{{ $allfeedback->employer->firstname }}</td>
-                                    <td style="text-transform: capitalize;">{{ $allfeedback->freelancer->firstname }}</td>
+                                    <td style="text-transform: capitalize;">{{ $allfeedback->employer ? ($allfeedback->employer->firstname ?? 'N/A') : 'N/A' }}</td>
+                                    <td style="text-transform: capitalize;">{{ $allfeedback->freelancer ? ($allfeedback->freelancer->firstname ?? 'N/A') : 'N/A' }}</td>
                                     <td>
                                         <div id="stars-rating">
                                             <span class="glyphicon glyphicon-star"></span>
@@ -107,7 +107,7 @@
                                     @cando('feedback/edit')
                                     <td class="text-center">
                                         <a href="{{ route('feedback.Edit', $allfeedback->id) }}" class="edit-line">
-                                            <img src="/public/backend/images/icones/edit.png" alt="Edit">
+                                            <img src="/backend/images/icones/edit.png" alt="Edit">
                                         </a>
                                     </td>
                                     @endcando

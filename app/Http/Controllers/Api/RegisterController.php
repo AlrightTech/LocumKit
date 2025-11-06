@@ -327,7 +327,7 @@ class RegisterController extends Controller
                 'min:8',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
             ],
-            'address' => ['required', 'string', 'min:10', 'max:255'],
+            'address' => ['required', 'string'],
             'town' => ['required', 'string', 'min:2', 'max:100'],
             'postcode' => ['required', 'string', 'regex:/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i'],
         ];
@@ -357,7 +357,6 @@ class RegisterController extends Controller
             'password.min' => 'Password must be at least 8 characters.',
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
             'address.required' => 'Address is required.',
-            'address.min' => 'Address must be at least 10 characters.',
             'town.required' => 'Town/City is required.',
             'town.min' => 'Town/City must be at least 2 characters.',
             'postcode.required' => 'Postcode is required.',

@@ -151,71 +151,91 @@ class JobsController extends Controller
         })->where("employer_id", Auth::user()->id)->select("job_date")->pluck("job_date")->map(function ($date) {
             return $date->format("Y-m-d");
         })->toArray(); */
-        $employer_store_list = EmployerStoreList::where("employer_id", Auth::user()->id)->select("id", "store_name")->get();
+        $employer_store_list = EmployerStoreList::where("employer_id", Auth::user()->id)->select("id", "store_name", "store_address", "store_region", "store_zip")->get();
+        
+        // Prepare store data for JavaScript
+        $store_data_json = $employer_store_list->map(function($store) {
+            return [
+                'id' => $store->id,
+                'name' => $store->store_name,
+                'address' => $store->store_address,
+                'region' => $store->store_region,
+                'zip' => $store->store_zip,
+            ];
+        })->values()->toJson();
 
-        return view('employer.manage-job', compact('employer_store_list', 'job', 'job_edit_action'));
+        return view('employer.manage-job', compact('employer_store_list', 'job', 'job_edit_action', 'store_data_json'));
     }
 
     public function saveManageJob(Request $request)
     {
         $request->validate([
             "job_store" => ["required", "integer"],
-            "job_title" => ["required", "string", "max:255"],
-            "job_date" => [
-                "required",
-                "regex:/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/"
-            ],
+            "job_reference" => ["required", "string", "max:255", "regex:/^[A-Za-z0-9\-]+$/"],
+            "job_dates" => ["required", "array", "min:1"],
+            "job_dates.*" => ["required", "regex:/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/"],
+            "job_start_times" => ["required", "array", "min:1"],
+            "job_start_times.*" => ["required", "date_format:H:i"],
+            "job_end_times" => ["required", "array", "min:1"],
+            "job_end_times.*" => ["required", "date_format:H:i"],
             "job_rate" => ["required", "numeric", "min:1"],
+            "num_locums_needed" => ["required", "integer", "min:1"],
             "set_timeline" => ["nullable"],
             "job_date_new" => ["required_if:set_timeline,1", "array"],
             "job_date_new.*" => ["required_if:set_timeline,1", "date_format:Y-m-d"],
             "job_rate_new" => ["required_if:set_timeline,1", "array"],
             "job_rate_new.*" => ["required_if:set_timeline,1", "numeric", "min:0"],
-            "job_timeline_hrs" => ["required_if:set_timeline,1", "array"],
-            "job_timeline_hrs.*" => ["required_if:set_timeline,1", "integer", "min:1", "max:24"],
+            "job_timeline_hrs" => ["nullable", "array"],
+            "job_timeline_hrs.*" => ["nullable", "integer", "min:1", "max:24"],
             "job_timeline_time" => ["required_if:set_timeline,1", "array"],
+            "special_requirements" => ["nullable", "array"],
+            "special_requirements_custom" => ["nullable", "string", "max:1000"],
         ]);
 
         $job_store = $request->input("job_store");
-        $job_title = $request->input("job_title");
-        $job_date = Carbon::createFromFormat(get_default_date_format(),  $request->input("job_date"));
+        $job_reference = $request->input("job_reference");
+        $job_dates = $request->input("job_dates");
+        $job_start_times = $request->input("job_start_times");
+        $job_end_times = $request->input("job_end_times");
         $job_rate = $request->input("job_rate");
+        $num_locums_needed = $request->input("num_locums_needed", 1);
         $set_timeline = $request->input("set_timeline");
         $job_date_new = $request->input("job_date_new");
         $job_rate_new = $request->input("job_rate_new");
         $job_timeline_hrs = $request->input("job_timeline_hrs");
         $job_post_desc = $request->input("job_post_desc");
+        $special_requirements = $request->input("special_requirements", []);
+        $special_requirements_custom = $request->input("special_requirements_custom");
+        
+        // Combine special requirements
+        $all_special_requirements = array_merge($special_requirements, $special_requirements_custom ? explode(',', $special_requirements_custom) : []);
+        $special_requirements_text = implode(', ', array_filter($all_special_requirements));
+        
+        // Use first date-time row as primary job date/time
+        $first_date = Carbon::createFromFormat(get_default_date_format(), $job_dates[0]);
+        $job_start_time = $job_start_times[0];
+        $job_end_time = $job_end_times[0];
+        
         //create new job post
-        //get job_start_time from employer selected store
+        //get job_start_time from employer selected store (fallback to user input)
         $store = EmployerStoreList::where("id", $job_store)->where("employer_id", Auth::user()->id)->select("id", "store_start_time", "store_address", "store_region", "store_zip")->first();
         if ($store == null) {
             return back()->with("error", "The selected store could not be found. Please select a valid store or add a new store from the Manage Store section.");
-        }
-        
-        // Safely decode store start time
-        $store_start_time = json_decode($store->store_start_time, true);
-        
-        // Check if json_decode returned a valid array
-        if (!is_array($store_start_time)) {
-            return back()->with("error", "Store configuration is incomplete. Please update your store's opening times in the Manage Store section before posting a job.");
-        }
-        
-        // Get start time for the job date's day of week
-        if (isset($store_start_time[$job_date->format("l")])) {
-            $job_start_time = $store_start_time[$job_date->format("l")];
-        } else {
-            $job_start_time = "09:00"; // Default fallback time
         }
 
         //create new job post
         $job_post = JobPost::create([
             "employer_id" => Auth::user()->id,
             "user_acl_profession_id" => Auth::user()->user_acl_profession_id,
-            "job_title" => $job_title,
-            "job_date" => $job_date->format("Y-m-d"),
+            "job_title" => $job_reference, // Using job_reference as job_title for now
+            "job_reference" => $job_reference,
+            "job_date" => $first_date->format("Y-m-d"),
             "job_start_time" => $job_start_time,
+            "job_end_time" => $job_end_time,
             "job_post_desc" => $job_post_desc,
             "job_rate" => $job_rate,
+            "num_locums_needed" => $num_locums_needed,
+            "special_requirements" => $special_requirements_text ?: null,
             "job_type" => 1,
             "job_address" => $store->store_address,
             "job_region" => $store->store_region,
@@ -224,10 +244,24 @@ class JobsController extends Controller
             "job_status" => 1,
         ]);
         
-        // Notify admin about new job post
-        $admin = User::where('user_acl_role_id', 1)->first();
-        if ($admin) {
-            $admin->notify(new NotifyAdminNotification($job_post));
+        // Notify admin about new job post (wrap in try-catch to prevent mail errors from breaking job submission)
+        try {
+            $admin = User::where('user_acl_role_id', 1)->first();
+            if ($admin) {
+                $admin->notify(new NotifyAdminNotification($job_post));
+                Log::info("Admin notification sent successfully for job post ID: {$job_post->id}");
+            }
+        } catch (\Exception $e) {
+            // Log mail errors but don't break the job submission flow
+            if (str_contains($e->getMessage(), 'Connection could not be established') ||
+                str_contains($e->getMessage(), 'Unable to connect') ||
+                str_contains($e->getMessage(), 'stream_socket_client') ||
+                str_contains($e->getMessage(), 'mail.locumkit.com')) {
+                Log::warning("Mail connection error when notifying admin about job post ID: {$job_post->id}. Error: " . $e->getMessage());
+            } else {
+                Log::error("Failed to send admin notification for job post ID: {$job_post->id}. Error: " . $e->getMessage());
+            }
+            // Continue with job submission - don't rethrow the exception
         }
 
         if ($set_timeline && $set_timeline == 1) {
@@ -239,7 +273,7 @@ class JobsController extends Controller
                 array_push($job_timelines, [
                     "job_post_id" => $job_post->id,
                     "job_date_new" => $date->format("Y-m-d"),
-                    "job_timeline_hrs" => $job_timeline_hrs[$key],
+                    "job_timeline_hrs" => isset($job_timeline_hrs[$key]) && $job_timeline_hrs[$key] !== null ? $job_timeline_hrs[$key] : '10',
                     "job_rate_new" => $job_rate_new[$key],
                     "job_timeline_time" => $job_timeline_time[$key] ?? null,
                     "job_timeline_status" => 3,
@@ -264,47 +298,68 @@ class JobsController extends Controller
         }
         $request->validate([
             "job_store" => ["required", "integer"],
-            "job_title" => ["required", "string", "max:255"],
-            "job_date" => ["required", "string", "size:10"],
+            "job_reference" => ["required", "string", "max:255", "regex:/^[A-Za-z0-9\-]+$/"],
+            "job_dates" => ["required", "array", "min:1"],
+            "job_dates.*" => ["required", "regex:/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/"],
+            "job_start_times" => ["required", "array", "min:1"],
+            "job_start_times.*" => ["required", "date_format:H:i"],
+            "job_end_times" => ["required", "array", "min:1"],
+            "job_end_times.*" => ["required", "date_format:H:i"],
             "job_rate" => ["required", "numeric", "min:1"],
+            "num_locums_needed" => ["required", "integer", "min:1"],
             "set_timeline" => ["nullable"],
             "job_date_new" => ["required_if:set_timeline,1", "array"],
             "job_date_new.*" => ["required_if:set_timeline,1", "date_format:Y-m-d"],
             "job_rate_new" => ["required_if:set_timeline,1", "array"],
             "job_rate_new.*" => ["required_if:set_timeline,1", "numeric", "min:0"],
-            "job_timeline_hrs" => ["required_if:set_timeline,1", "array"],
-            "job_timeline_hrs.*" => ["required_if:set_timeline,1", "integer", "min:1", "max:24"],
+            "job_timeline_hrs" => ["nullable", "array"],
+            "job_timeline_hrs.*" => ["nullable", "integer", "min:1", "max:24"],
             "job_timeline_time" => ["required_if:set_timeline,1", "array"],
+            "special_requirements" => ["nullable", "array"],
+            "special_requirements_custom" => ["nullable", "string", "max:1000"],
         ]);
         $job_store = $request->input("job_store");
-        $job_title = $request->input("job_title");
-        $job_date = Carbon::createFromFormat(get_default_date_format(),  $request->input("job_date"));
+        $job_reference = $request->input("job_reference");
+        $job_dates = $request->input("job_dates");
+        $job_start_times = $request->input("job_start_times");
+        $job_end_times = $request->input("job_end_times");
         $job_rate = $request->input("job_rate");
+        $num_locums_needed = $request->input("num_locums_needed", 1);
         $set_timeline = $request->input("set_timeline");
         $job_date_new = $request->input("job_date_new");
         $job_rate_new = $request->input("job_rate_new");
         $job_timeline_hrs = $request->input("job_timeline_hrs");
         $job_post_desc = $request->input("job_post_desc");
+        $special_requirements = $request->input("special_requirements", []);
+        $special_requirements_custom = $request->input("special_requirements_custom");
+        
+        // Combine special requirements
+        $all_special_requirements = array_merge($special_requirements, $special_requirements_custom ? explode(',', $special_requirements_custom) : []);
+        $special_requirements_text = implode(', ', array_filter($all_special_requirements));
+        
+        // Use first date-time row as primary job date/time
+        $first_date = Carbon::createFromFormat(get_default_date_format(), $job_dates[0]);
+        $job_start_time = $job_start_times[0];
+        $job_end_time = $job_end_times[0];
+        
         //create new job post
         //get job_start_time from employer selected store
         $store = EmployerStoreList::where("id", $job_store)->where("employer_id", Auth::user()->id)->select("id", "store_start_time", "store_address", "store_region", "store_zip")->first();
         if ($store == null) {
             return back()->with("error", "Select a store or add new store from Manage Store section");
         }
-        $store_start_time = json_decode($store->store_start_time, true);
-        if (isset($store_start_time[$job_date->format("l")])) {
-            $job_start_time = $store_start_time[$job_date->format("l")];
-        } else {
-            $job_start_time = "09:00";
-        }
 
         //update the job post
         JobPost::where("id", $job->id)->update([
-            "job_title" => $job_title,
-            "job_date" => $job_date->format("Y-m-d"),
+            "job_title" => $job_reference,
+            "job_reference" => $job_reference,
+            "job_date" => $first_date->format("Y-m-d"),
             "job_start_time" => $job_start_time,
+            "job_end_time" => $job_end_time,
             "job_post_desc" => $job_post_desc,
             "job_rate" => $job_rate,
+            "num_locums_needed" => $num_locums_needed,
+            "special_requirements" => $special_requirements_text ?: null,
             "job_type" => 1,
             "job_address" => $store->store_address,
             "job_region" => $store->store_region,
@@ -324,7 +379,7 @@ class JobsController extends Controller
                 array_push($job_timelines, [
                     "job_post_id" => $job->id,
                     "job_date_new" => $date->format("Y-m-d"),
-                    "job_timeline_hrs" => $job_timeline_hrs[$key],
+                    "job_timeline_hrs" => isset($job_timeline_hrs[$key]) && $job_timeline_hrs[$key] !== null ? $job_timeline_hrs[$key] : '10',
                     "job_rate_new" => $job_rate_new[$key],
                     "job_timeline_time" => $job_timeline_time[$key] ?? null,
                     "job_timeline_status" => 3,
@@ -523,9 +578,17 @@ class JobsController extends Controller
             return abort(404);
         }
         $job->get_store_start_time();
-        $store_contact_details = $job->employer->user_extra_info->mobile;
+        // Safely get store contact details - check if user_extra_info exists
+        $store_contact_details = null;
+        if ($job->employer && $job->employer->user_extra_info) {
+            $store_contact_details = $job->employer->user_extra_info->mobile;
+            if ($store_contact_details == null || empty($store_contact_details)) {
+                $store_contact_details = $job->employer->user_extra_info->telephone;
+            }
+        }
+        // If still null, set a default message
         if ($store_contact_details == null || empty($store_contact_details)) {
-            $store_contact_details = $job->employer->user_extra_info->telephone;
+            $store_contact_details = 'Not available';
         }
 
         $statusUrl = 0;

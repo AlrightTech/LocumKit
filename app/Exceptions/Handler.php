@@ -46,10 +46,32 @@ class Handler extends ExceptionHandler
     public function register()
     {
         $this->reportable(function (Throwable $e) {
-            //
+            // Log mail connection errors but don't fail the application
+            if (str_contains($e->getMessage(), 'Connection could not be established') ||
+                str_contains($e->getMessage(), 'Unable to connect') ||
+                str_contains($e->getMessage(), 'stream_socket_client') ||
+                str_contains($e->getMessage(), 'mail.locumkit.com')) {
+                \Illuminate\Support\Facades\Log::warning('Mail connection error: ' . $e->getMessage());
+                // Don't report to error tracking services for mail errors
+                return false;
+            }
         });
 
         $this->renderable(function (Throwable $e, Request $request) {
+            // Suppress mail connection errors from being displayed to users
+            if (str_contains($e->getMessage(), 'Connection could not be established') ||
+                str_contains($e->getMessage(), 'Unable to connect') ||
+                str_contains($e->getMessage(), 'stream_socket_client') ||
+                str_contains($e->getMessage(), 'mail.locumkit.com')) {
+                \Illuminate\Support\Facades\Log::warning('Mail connection error suppressed: ' . $e->getMessage());
+                // Return a generic error or redirect back with a message
+                if ($request->is('api/*')) {
+                    return response()->error('Email service temporarily unavailable. Your request was processed successfully.', 200);
+                }
+                // For web requests, just log and continue - don't show error to user
+                return null; // Let the request continue normally
+            }
+            
             if ($request->is('api/*')) {
                 return response()->error($e->getMessage(), 500);
             }

@@ -949,11 +949,24 @@ if (!function_exists('checkPermission')) {
             return false;
         }
         
+        $user = auth()->user();
+        
+        // Admin users (role_id = 1) should always have access to all permissions
+        // This ensures admin panel works even if permissions aren't fully configured
+        if ($user->user_acl_role_id == 1) {
+            return true;
+        }
+        
+        // Check if user has a role
+        if (!$user->role) {
+            return false;
+        }
+        
         // Check if the permission exists
         $userPermission = \App\Models\userAclPermisssion::where('permission', $permisssion)->first();
         
         if ($userPermission) {
-            return auth()->user()->role->permissions()->where('permission', $permisssion)->exists();
+            return $user->role->permissions()->where('permission', $permisssion)->exists();
         }
         
         return false;
