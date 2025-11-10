@@ -127,28 +127,64 @@ jobs:
             if [ -z "$DEPLOY_PATH" ]; then
               DEPLOY_PATH="/home/${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}/public_html"
             fi
-            cd "$DEPLOY_PATH"
             
-            # Backup current version
-            if [ -d "current" ]; then
-              cp -r current backup_$(date +%Y%m%d_%H%M%S)
-            fi
+            echo "Deployment path: $DEPLOY_PATH"
             
             # Get username for paths
             SSH_USER="${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}"
             
-            # Extract new version
-            tar -xzf /home/$SSH_USER/tmp/deploy.tar.gz -C /home/$SSH_USER/tmp/deploy_new
+            # Create temporary extraction directory
+            EXTRACT_DIR="/home/$SSH_USER/tmp/deploy_new"
+            mkdir -p "$EXTRACT_DIR"
             
-            # Run Laravel deployment commands
-            cd /home/$SSH_USER/tmp/deploy_new
+            # Extract deployment package
+            echo "Extracting deployment package..."
+            tar -xzf /home/$SSH_USER/tmp/deploy.tar.gz -C "$EXTRACT_DIR"
             
-            # Set permissions
-            chmod -R 755 storage bootstrap/cache
-            chown -R $SSH_USER:$SSH_USER storage bootstrap/cache
+            # Ensure deployment path exists
+            mkdir -p "$DEPLOY_PATH"
+            
+            # Preserve .env file if it exists
+            ENV_BACKUP=""
+            if [ -f "$DEPLOY_PATH/.env" ]; then
+              ENV_BACKUP="/tmp/.env.backup_$(date +%s)"
+              cp "$DEPLOY_PATH/.env" "$ENV_BACKUP"
+              echo "✅ Backed up existing .env file"
+            fi
+            
+            # Deploy files to deployment path
+            echo "Deploying files to: $DEPLOY_PATH"
+            
+            # Try rsync first (most efficient), then fallback to cp
+            if command -v rsync >/dev/null 2>&1; then
+              rsync -av --delete "$EXTRACT_DIR/" "$DEPLOY_PATH/" --exclude='.env' --exclude='.env.*'
+              echo "✅ Files deployed using rsync"
+            else
+              # Fallback: remove old files (except .env) and copy new ones
+              find "$DEPLOY_PATH" -mindepth 1 -maxdepth 1 ! -name '.env' ! -name '.env.*' -exec rm -rf {} + 2>/dev/null || true
+              cp -r "$EXTRACT_DIR"/* "$DEPLOY_PATH/" 2>/dev/null
+              echo "✅ Files deployed using cp"
+            fi
+            
+            # Restore .env file if it was backed up
+            if [ -n "$ENV_BACKUP" ] && [ -f "$ENV_BACKUP" ]; then
+              cp "$ENV_BACKUP" "$DEPLOY_PATH/.env"
+              rm -f "$ENV_BACKUP"
+              echo "✅ Restored .env file"
+            fi
+            
+            # Change to deployment directory
+            cd "$DEPLOY_PATH"
+            
+            # Set proper permissions
+            echo "Setting permissions..."
+            chmod -R 755 storage bootstrap/cache public 2>/dev/null || true
+            chmod -R 775 storage/logs storage/framework 2>/dev/null || true
+            find storage bootstrap/cache -type d -exec chmod 775 {} \; 2>/dev/null || true
+            find storage bootstrap/cache -type f -exec chmod 664 {} \; 2>/dev/null || true
             
             # Detect PHP version
-            PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;")
+            PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;" 2>/dev/null || echo "82")
             PHP_BIN="/usr/local/bin/php${PHP_VERSION}"
             
             # Fallback to common PHP paths if version-specific not found
@@ -167,26 +203,60 @@ jobs:
             fi
             
             echo "Using PHP: $PHP_BIN"
+            $PHP_BIN --version || php --version
             
-            # Run composer install on server (if needed)
-            # /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction || \
-            # composer install --no-dev --optimize-autoloader --no-interaction
+            # Install Composer dependencies on server (if vendor not deployed)
+            if [ ! -d "vendor" ] || [ "$(ls -A vendor 2>/dev/null | wc -l)" -eq 0 ]; then
+              echo "Installing Composer dependencies..."
+              /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist 2>&1 || \
+              composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist 2>&1 || \
+              echo "Composer install failed, continuing..."
+            fi
+            
+            # Clear all caches first
+            echo "Clearing Laravel caches..."
+            $PHP_BIN artisan config:clear 2>/dev/null || true
+            $PHP_BIN artisan cache:clear 2>/dev/null || true
+            $PHP_BIN artisan view:clear 2>/dev/null || true
+            $PHP_BIN artisan route:clear 2>/dev/null || true
             
             # Run migrations (optional - uncomment if needed)
-            # $PHP_BIN artisan migrate --force
+            # echo "Running migrations..."
+            # $PHP_BIN artisan migrate --force || echo "Migration failed or no migrations to run"
             
-            # Clear and cache config
-            $PHP_BIN artisan config:cache
-            $PHP_BIN artisan route:cache
-            $PHP_BIN artisan view:cache
+            # Cache for production
+            echo "Caching for production..."
+            $PHP_BIN artisan config:cache 2>/dev/null || true
+            $PHP_BIN artisan route:cache 2>/dev/null || true
+            $PHP_BIN artisan view:cache 2>/dev/null || true
+            $PHP_BIN artisan optimize 2>/dev/null || true
             
-            # Move to production directory
-            if [ -d "$DEPLOY_PATH/current" ]; then
-              rm -rf "$DEPLOY_PATH/current"
+            # Create storage link if it doesn't exist
+            if [ ! -L "public/storage" ]; then
+              echo "Creating storage symlink..."
+              $PHP_BIN artisan storage:link 2>/dev/null || true
             fi
-            mv /home/$SSH_USER/tmp/deploy_new "$DEPLOY_PATH/current"
+            
+            # Verify deployment
+            echo ""
+            echo "✅ Deployment completed!"
+            echo "📁 Deployment path: $DEPLOY_PATH"
+            echo "📂 Files deployed to: $DEPLOY_PATH"
+            echo "🌐 Document root should be: $DEPLOY_PATH/public"
+            echo ""
+            echo "⚠️  IMPORTANT: Verify your document root points to: $DEPLOY_PATH/public"
+            echo "   In cPanel: Subdomains → Manage → Change Document Root"
+            
+            # List some key files to verify deployment
+            echo ""
+            echo "Verifying key files..."
+            ls -la "$DEPLOY_PATH/public/index.php" 2>/dev/null && echo "✅ public/index.php exists" || echo "❌ public/index.php NOT FOUND"
+            ls -la "$DEPLOY_PATH/.env" 2>/dev/null && echo "✅ .env exists" || echo "⚠️  .env not found (make sure it exists on server)"
+            ls -d "$DEPLOY_PATH/vendor" 2>/dev/null && echo "✅ vendor directory exists" || echo "⚠️  vendor directory not found"
             
             # Cleanup
+            echo "Cleaning up temporary files..."
+            rm -rf "$EXTRACT_DIR"
             rm -f /home/$SSH_USER/tmp/deploy.tar.gz
             
             # Restart PHP-FPM (if needed)

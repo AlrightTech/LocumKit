@@ -64,11 +64,17 @@ Before deploying, you need to add these secrets to your GitHub repository.
 - **Example:** `username123`
 
 ### 7. CPANEL_DEPLOY_PATH
-- **What it is:** Where to deploy files on server
+- **What it is:** Where to deploy files on server (the full server path)
 - **How to find:**
+  - **Easiest method:** cPanel → File Manager → Navigate to your domain folder → Check the path shown at the top
+  - **Alternative:** cPanel → Subdomains → Click "Manage" → Look at "Document Root" (remove `/public` from the end)
   - Main domain: `/home/yourcpanelusername/public_html`
-  - Check cPanel → File Manager → Look at the path shown
-- **Example:** `/home/username123/public_html`
+  - Subdomain: `/home/yourcpanelusername/subdomain.domain.com`
+  - **See `HOW_TO_FIND_DEPLOY_PATH.md` for detailed instructions**
+- **Example:** `/home/username123/public_html` or `/home/username123/locumkit.murreefoods.com`
+- **Important:** 
+  - Path should NOT end with `/public` (that's document root, not deployment path)
+  - Path should NOT end with trailing slash `/`
 
 ---
 
@@ -132,6 +138,43 @@ After adding secrets, you can test by:
 - Verify deployment path exists
 - Check you have write permissions
 - Path should start with `/home/` and end with `/public_html` or your subdomain path
+
+**404 Error or Empty Folders After Deployment:**
+
+If deployment succeeds but you see 404 errors or empty folders:
+
+1. **Check Document Root:**
+   - Go to cPanel → Subdomains (or Domains)
+   - Click "Manage" next to your domain/subdomain
+   - Verify "Document Root" points to: `[DEPLOY_PATH]/public`
+   - Example: If `CPANEL_DEPLOY_PATH` is `/home/username/public_html`, document root should be `/home/username/public_html/public`
+   - **This is the most common cause of 404 errors!**
+
+2. **Verify Files Were Deployed:**
+   - Check cPanel File Manager
+   - Navigate to your deployment path (e.g., `/home/username/public_html`)
+   - You should see Laravel folders: `app`, `bootstrap`, `config`, `public`, `storage`, `vendor`, etc.
+   - If folders are empty, check GitHub Actions logs for errors
+
+3. **Check Deployment Path Secret:**
+   - Verify `CPANEL_DEPLOY_PATH` is set correctly in GitHub Secrets
+   - Should be the full path: `/home/yourusername/public_html` (not `/public_html/`)
+   - For subdomains: `/home/yourusername/subdomain.domain.com`
+
+4. **Verify SSH Deployment:**
+   - The workflow uses SSH to extract and deploy files
+   - Check that `CPANEL_SSH_KEY`, `CPANEL_SSH_HOST`, and `CPANEL_SSH_USERNAME` are correct
+   - SSH into your server and check: `ls -la [DEPLOY_PATH]`
+
+5. **Check File Permissions:**
+   - Files should have proper permissions (755 for directories, 644 for files)
+   - Storage and bootstrap/cache should be writable (775)
+   - The deployment script sets these automatically, but verify if issues persist
+
+6. **Verify .env File:**
+   - Make sure `.env` file exists on the server in the deployment path
+   - The deployment preserves existing `.env` files
+   - If missing, create it manually in cPanel File Manager
 
 ---
 
