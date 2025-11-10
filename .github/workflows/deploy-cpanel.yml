@@ -29,6 +29,14 @@ jobs:
           extensions: mbstring, xml, bcmath, pdo, pdo_mysql, fileinfo, openssl, tokenizer, json, ctype, gd, zip
           coverage: none
       
+      - name: Create Laravel cache directories
+        run: |
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p bootstrap/cache
+          chmod -R 775 storage bootstrap/cache
+      
       - name: Cache Composer dependencies
         uses: actions/cache@v3
         with:
