@@ -29,13 +29,30 @@ jobs:
           extensions: mbstring, xml, bcmath, pdo, pdo_mysql, fileinfo, openssl, tokenizer, json, ctype, gd, zip
           coverage: none
       
-      - name: Create Laravel cache directories
+      - name: Setup Laravel environment for CI
         run: |
+          # Create all required directories
+          mkdir -p storage/app/public
           mkdir -p storage/framework/cache/data
           mkdir -p storage/framework/sessions
           mkdir -p storage/framework/views
+          mkdir -p storage/framework/testing
+          mkdir -p storage/logs
           mkdir -p bootstrap/cache
+          
+          # Set permissions
           chmod -R 775 storage bootstrap/cache
+          
+          # Create minimal .env for CI (Laravel needs this for some commands)
+          if [ ! -f .env ]; then
+            echo "APP_NAME=LocumKit" > .env
+            echo "APP_ENV=local" >> .env
+            echo "APP_KEY=" >> .env
+            echo "APP_DEBUG=true" >> .env
+            echo "APP_URL=http://localhost" >> .env
+            echo "LOG_CHANNEL=stack" >> .env
+            echo "LOG_LEVEL=debug" >> .env
+          fi
       
       - name: Cache Composer dependencies
         uses: actions/cache@v3
@@ -46,7 +63,13 @@ jobs:
             ${{ runner.os }}-composer-
       
       - name: Install Composer Dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || \
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+          # Run package discovery manually if needed (skip in CI)
+          if [ -f .env ] && [ -n "$(grep APP_KEY .env | cut -d '=' -f2)" ]; then
+            php artisan package:discover --ansi || true
+          fi
       
       - name: Cache NPM dependencies
         uses: actions/cache@v3
