@@ -16,8 +16,124 @@
         
         .timeline-item label {
             font-weight: 600;
-            color: #495057;
+            color: #000000 !important;
             margin-bottom: 5px;
+        }
+        
+        /* Fix date input width to show full year */
+        .timeline-item .timeline-date {
+            min-width: 180px;
+            width: 100%;
+            padding-right: 35px;
+            font-size: 14px;
+            color: #000000 !important;
+        }
+        
+        .timeline-item .timeline-date::-webkit-calendar-picker-indicator {
+            margin-left: 0;
+            padding: 0;
+            cursor: pointer;
+        }
+        
+        /* Ensure timeline fields are properly sized and styled */
+        .timeline-item .timeline-time,
+        .timeline-item .timeline-rate {
+            width: 100%;
+            color: #000000 !important;
+            border: 1px solid #ccc !important;
+            height: 38px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .timeline-item .timeline-time:focus,
+        .timeline-item .timeline-rate:focus {
+            border-color: #66afe9 !important;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+        
+        /* Ensure timeline date field has consistent styling */
+        .timeline-item .timeline-date {
+            border: 1px solid #ccc !important;
+            height: 38px;
+            padding: 8px 12px;
+            padding-right: 35px;
+            border-radius: 4px;
+            min-width: 180px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .timeline-item .timeline-date:focus {
+            border-color: #66afe9 !important;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+        
+        /* Ensure timeline fields align properly */
+        .timeline-item .row > div {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .timeline-item .row > div label {
+            height: auto;
+            min-height: 20px;
+            margin-bottom: 6px;
+        }
+        
+        .timeline-item .row > div .form-control,
+        .timeline-item .row > div input,
+        .timeline-item .row > div select {
+            flex: 0 0 auto;
+            margin-top: 0;
+        }
+        
+        /* Timeline row spacing */
+        .timeline-item {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .timeline-item .row {
+            margin-left: -10px;
+            margin-right: -10px;
+            position: relative;
+            overflow: visible;
+            width: calc(100% + 20px);
+        }
+        
+        .timeline-item .row > div {
+            padding-left: 10px;
+            padding-right: 10px;
+            position: relative;
+            overflow: visible;
+            box-sizing: border-box;
+        }
+        
+        /* Ensure date input shows full content */
+        .timeline-item input[type="date"] {
+            min-width: 180px;
+            width: 100%;
+            overflow: visible;
+            text-overflow: clip;
+        }
+        
+        /* Responsive adjustments for timeline */
+        @media (max-width: 768px) {
+            .timeline-item .row > div {
+                margin-bottom: 15px;
+            }
+            
+            .timeline-item .timeline-date {
+                min-width: 100%;
+            }
         }
         
         .timeline-preview {
@@ -104,6 +220,462 @@
         #timeline_box .text-muted {
             margin-bottom: 20px;
         }
+        
+        /* Make all form text black */
+        .post-job-content,
+        .post-job-content * {
+            color: #000000 !important;
+        }
+        
+        .post-job-content label,
+        .post-job-content input,
+        .post-job-content select,
+        .post-job-content textarea,
+        .post-job-content input::placeholder,
+        .post-job-content textarea::placeholder,
+        .post-job-content option,
+        .post-job-content small,
+        .post-job-content .text-muted,
+        .post-job-content .form-control,
+        .post-job-content .alert,
+        .post-job-content .alert strong,
+        .post-job-content .alert span {
+            color: #000000 !important;
+        }
+        
+        .post-job-content input[type="text"],
+        .post-job-content input[type="number"],
+        .post-job-content input[type="time"],
+        .post-job-content input[type="date"],
+        .post-job-content select,
+        .post-job-content textarea {
+            color: #000000 !important;
+        }
+        
+        /* Ensure all text in the form area is black */
+        #primary-content.post-job,
+        #primary-content.post-job .white-bg,
+        #primary-content.post-job .white-bg * {
+            color: #000000 !important;
+        }
+        
+        /* Exception for help text that should remain muted */
+        .post-job-content .text-muted {
+            color: #6c757d !important;
+        }
+        
+        /* Exception for error messages */
+        .post-job-content .text-danger {
+            color: #dc3545 !important;
+        }
+        
+        /* Date and Time fields alignment */
+        .datetime-row {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            position: relative;
+            background-color: #fff;
+            overflow: visible;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .datetime-row .row {
+            margin-left: 0;
+            margin-right: 0;
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+            position: relative;
+            overflow: visible;
+            width: 100%;
+        }
+        
+        .datetime-row .row > div {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            position: relative;
+            overflow: visible;
+            max-width: 100%;
+        }
+        
+        .datetime-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #000000 !important;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+        
+        .datetime-row .form-control {
+            width: 100%;
+            margin-bottom: 0;
+            height: 38px;
+            box-sizing: border-box;
+            padding: 8px 12px;
+            border: 1px solid #ccc !important;
+            border-radius: 4px;
+            font-size: 14px;
+            vertical-align: top;
+        }
+        
+        /* Ensure all inputs have consistent styling */
+        .datetime-row input[type="text"],
+        .datetime-row input[type="time"],
+        .datetime-row input[type="date"] {
+            border: 1px solid #ccc !important;
+            background-color: #fff;
+        }
+        
+        .datetime-row input[type="text"]:focus,
+        .datetime-row input[type="time"]:focus,
+        .datetime-row input[type="date"]:focus {
+            border-color: #66afe9 !important;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+        
+        /* Ensure time input displays AM/PM properly */
+        .datetime-row input[type="time"] {
+            padding-right: 45px;
+            min-width: 150px;
+            overflow: visible;
+            text-overflow: clip;
+            white-space: nowrap;
+        }
+        
+        .datetime-row input[type="time"]::-webkit-calendar-picker-indicator {
+            margin-left: 0;
+            padding: 0;
+            cursor: pointer;
+            position: absolute;
+            right: 8px;
+        }
+        
+        /* Ensure time input is wide enough to show AM/PM */
+        .datetime-row .datetime-start-time,
+        .datetime-row .datetime-end-time {
+            min-width: 150px;
+            padding-right: 45px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        /* Prevent clipping of time input content */
+        .datetime-row .col-md-4 {
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .datetime-row .row > div {
+            overflow: visible;
+        }
+        
+        /* Ensure labels align properly */
+        .datetime-row .col-md-4 label {
+            height: auto;
+            min-height: 20px;
+            margin-bottom: 6px;
+            flex-shrink: 0;
+        }
+        
+        .datetime-row .col-md-4 .form-control {
+            flex: 0 0 auto;
+        }
+        
+        /* Add Another Date & Time button styling */
+        #add-datetime-row {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        /* Remove button alignment in datetime rows */
+        .datetime-row .remove-datetime-row {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            padding: 5px 8px;
+            line-height: 1;
+            border-radius: 3px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .datetime-row .remove-datetime-row:hover {
+            opacity: 1;
+            background-color: #c82333;
+        }
+        
+        /* Ensure labels align perfectly */
+        .datetime-row .row > div:first-child label,
+        .datetime-row .row > div:nth-child(2) label,
+        .datetime-row .row > div:nth-child(3) label {
+            height: auto;
+            min-height: 20px;
+        }
+        
+        /* Ensure proper spacing between datetime rows */
+        #datetime-rows {
+            margin-bottom: 0;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .post-job-content .col-md-4,
+            .post-job-content .col-md-8 {
+                width: 100%;
+                float: none;
+                padding-left: 15px;
+                padding-right: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .post-job-content .col-md-4 label {
+                padding-top: 0;
+                margin-bottom: 8px;
+            }
+            
+            .datetime-row .row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .datetime-row .row > div {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .timeline-item .row {
+                flex-direction: column;
+            }
+            
+            .timeline-item .row > div {
+                width: 100% !important;
+                margin-bottom: 15px;
+            }
+            
+            .timeline-item .row > div:last-child {
+                margin-bottom: 0;
+            }
+        }
+        
+        /* Ensure equal spacing and alignment on all screen sizes */
+        @media (min-width: 769px) {
+            .datetime-row .row {
+                gap: 12px;
+            }
+            
+            .datetime-row .row > div {
+                flex: 1 1 0;
+            }
+        }
+        
+        /* Fix form field alignment issues and prevent overlapping */
+        .post-job-content {
+            position: relative;
+            overflow: visible;
+        }
+        
+        .post-job-content .col-md-12 {
+            margin-bottom: 25px;
+            clear: both;
+            position: relative;
+            overflow: visible;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+        
+        .post-job-content .col-md-12:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        
+        .post-job-content .col-md-4 {
+            padding-right: 15px;
+            padding-left: 15px;
+            position: relative;
+            overflow: visible;
+            float: left;
+            width: 33.33333333%;
+        }
+        
+        .post-job-content .col-md-4 label {
+            padding-top: 8px;
+            margin-bottom: 0;
+            font-weight: 500;
+            color: #000000 !important;
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .post-job-content .col-md-8 {
+            padding-left: 15px;
+            padding-right: 15px;
+            position: relative;
+            overflow: visible;
+            float: left;
+            width: 66.66666667%;
+        }
+        
+        /* Prevent form elements from overlapping */
+        .post-job-content .form-control,
+        .post-job-content input,
+        .post-job-content select,
+        .post-job-content textarea {
+            max-width: 100%;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Ensure proper container structure */
+        .post-job-content .job-content {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+        }
+        
+        .post-job-content form {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+        }
+        
+        /* Ensure form controls have consistent styling */
+        .post-job-content .form-control {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 14px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        .post-job-content .form-control:focus {
+            border-color: #66afe9;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+        
+        /* Override for datetime-row to ensure consistency */
+        .datetime-row .form-control:focus {
+            border-color: #66afe9;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+        
+        /* Fix button alignment */
+        .post-job-content button[type="submit"] {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 16px;
+            clear: both;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Ensure proper spacing for all sections */
+        .post-job-content .mar-mins {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+        }
+        
+        /* Fix store details display */
+        #store-details {
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Ensure timeline box doesn't overlap */
+        #timeline_box {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+            margin-top: 20px;
+            clear: both;
+        }
+        
+        /* Fix sidebar positioning */
+        .sidebar-right-post-padd {
+            position: relative;
+            overflow: visible;
+        }
+        
+        /* Ensure form sections don't overlap */
+        .post-job-content section {
+            position: relative;
+            overflow: visible;
+            margin-bottom: 20px;
+        }
+        
+        /* Fix main content container */
+        #primary-content.post-job {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+        }
+        
+        #primary-content.post-job .container {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        #primary-content.post-job .row {
+            margin-left: -15px;
+            margin-right: -15px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        #primary-content.post-job .white-bg {
+            position: relative;
+            overflow: visible;
+            width: 100%;
+        }
+        
+        /* Ensure proper spacing between form rows */
+        .post-job-content .col-md-12 + .col-md-12 {
+            margin-top: 0;
+        }
+        
+        /* Fix alert boxes positioning */
+        .post-job-content .alert {
+            position: relative;
+            z-index: 1;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        /* Ensure buttons don't overlap */
+        #add-datetime-row,
+        #add_timeline {
+            position: relative;
+            z-index: 1;
+            margin-top: 15px;
+            display: inline-block;
+        }
     </style>
 @endpush
 @section('content')
@@ -166,6 +738,7 @@
                                                 pattern="[A-Za-z0-9\-]+"
                                                 title="Alphanumeric with dashes allowed"
                                                 required
+                                                style="color: #000000;"
                                             >
                                             <small class="text-muted">A short name or code to identify the job.</small>
                                         </div>
@@ -177,7 +750,7 @@
                                             <label>Location / Store <span class="text-danger">*</span></label>
                                         </div>
                                         <div class="col-md-8">
-                                            <select name="job_store" id="job_store" class="form-control" required>
+                                            <select name="job_store" id="job_store" class="form-control" required style="color: #000000;">
                                                 <option value="" disabled selected>Select Store</option>
                                                 @foreach ($employer_store_list as $store)
                                                     <option value="{{ $store->id }}" @if (isset($job) && $job) @selected($job->employer_store_list_id == $store->id) @endif> {{ $store->store_name }} </option>
@@ -200,42 +773,45 @@
                                         </div>
                                         <div class="col-md-8">
                                             <div id="datetime-rows">
-                                                <div class="datetime-row margin-bottom" style="border:1px solid #ddd; padding:15px; border-radius:5px; margin-bottom:10px;">
+                                                <div class="datetime-row">
                                                     <div class="row">
                                                         <div class="col-md-4">
                                                             <label>Date</label>
                                                             <input 
                                                                 type="text" 
                                                                 name="job_dates[]" 
-                                                                class="form-control margin-bottom req-datepicker datetime-date" 
+                                                                class="form-control req-datepicker datetime-date" 
                                                                 pattern="\d{2}/\d{2}/\d{4}" 
                                                                 placeholder="dd/mm/yyyy" 
                                                                 required
                                                                 readonly
+                                                                style="color: #000000;"
                                                             >
                                                         </div>
                                                         <div class="col-md-4">
-                                                            <label>Start Time (HH:mm)</label>
+                                                            <label>Start Time</label>
                                                             <input 
                                                                 type="time" 
                                                                 name="job_start_times[]" 
-                                                                class="form-control margin-bottom datetime-start-time" 
+                                                                class="form-control datetime-start-time" 
                                                                 required
+                                                                style="color: #000000;"
                                                             >
                                                         </div>
                                                         <div class="col-md-4">
-                                                            <label>End Time (HH:mm)</label>
+                                                            <label>End Time</label>
                                                             <input 
                                                                 type="time" 
                                                                 name="job_end_times[]" 
-                                                                class="form-control margin-bottom datetime-end-time" 
+                                                                class="form-control datetime-end-time" 
                                                                 required
+                                                                style="color: #000000;"
                                                             >
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-info" id="add-datetime-row">
+                                            <button type="button" class="btn btn-sm btn-info" id="add-datetime-row" style="margin-top: 10px;">
                                                 <i class="fa fa-plus"></i> Add Another Date & Time
                                             </button>
                                         </div>
@@ -258,7 +834,8 @@
                                                     value="{{ $job->job_rate }}" 
                                                 @endif
                                                 placeholder="Enter rate in (£)" 
-                                                required 
+                                                required
+                                                style="color: #000000;"
                                             />
                                             <small class="text-muted">This is the rate locums will initially see.</small>
                                         </div>
@@ -281,7 +858,8 @@
                                                 @else
                                                     value="1"
                                                 @endif
-                                                required 
+                                                required
+                                                style="color: #000000;"
                                             />
                                         </div>
                                     </div>
@@ -312,13 +890,13 @@
                                                 @foreach ($job->job_post_timelines as $timeline)
                                                     <div class="add_block timeline-item">
                                                         <div class="row">
-                                                            <div class="col-md-3">
+                                                            <div class="col-md-4">
                                                                 <label>Date</label>
-                                                                <input type="date" name="job_date_new[]" value="{{ $timeline->job_date_new->format('Y-m-d') }}" class="form-control margin-bottom timeline-date" placeholder="Enter date" min="{{ date('Y-m-d') }}" required>
+                                                                <input type="date" name="job_date_new[]" value="{{ $timeline->job_date_new->format('Y-m-d') }}" class="form-control margin-bottom timeline-date" placeholder="Enter date" min="{{ date('Y-m-d') }}" required style="color: #000000;">
                                                             </div>
                                                             <div class="col-md-2">
                                                                 <label>Time</label>
-                                                                <select name="job_timeline_time[]" class="form-control margin-bottom timeline-time" required>
+                                                                <select name="job_timeline_time[]" class="form-control margin-bottom timeline-time" required style="color: #000000;">
                                                                     <option value="">Select Time</option>
                                                                     @for($hour = 9; $hour <= 17; $hour++)
                                                                         @for($minute = 0; $minute < 60; $minute += 30)
@@ -331,9 +909,9 @@
                                                                     @endfor
                                                                 </select>
                                                             </div>
-                                                            <div class="col-md-3">
+                                                            <div class="col-md-2">
                                                                 <label>Increase Rate</label>
-                                                                <input type="number" name="job_rate_new[]" value="{{ $timeline->job_rate_new }}" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required>
+                                                                <input type="number" name="job_rate_new[]" value="{{ $timeline->job_rate_new }}" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required style="color: #000000;">
                                                             </div>
                                                             <div class="col-md-3">
                                                                 <label>&nbsp;</label>
@@ -369,27 +947,17 @@
                                             <label>Special Requirements</label>
                                         </div>
                                         <div class="col-md-8">
-                                            <div class="margin-bottom">
-                                                <label class="checkbox-inline">
-                                                    <input type="checkbox" name="special_requirements[]" value="Must speak Urdu"> Must speak Urdu
-                                                </label><br>
-                                                <label class="checkbox-inline">
-                                                    <input type="checkbox" name="special_requirements[]" value="Must be experienced with OCT scans"> Must be experienced with OCT scans
-                                                </label><br>
-                                                <label class="checkbox-inline">
-                                                    <input type="checkbox" name="special_requirements[]" value="Must cover contact lens fitting"> Must cover contact lens fitting
-                                                </label>
-                                            </div>
                                             <input 
                                                 type="text" 
                                                 name="special_requirements_custom" 
                                                 class="form-control margin-bottom" 
-                                                placeholder="Enter custom requirements (comma-separated)"
+                                                placeholder="Enter any specific requirements (optional)"
+                                                style="color: #000000;"
                                                 @if (isset($job) && $job && $job->special_requirements) 
                                                     value="{{ $job->special_requirements }}" 
                                                 @endif
                                             >
-                                            <small class="text-muted">Only locums meeting these requirements will see the job.</small>
+                                            <small class="text-muted" style="color: #6c757d;">Only locums meeting these requirements will see the job.</small>
                                         </div>
                                     </div>
 
@@ -404,6 +972,7 @@
                                                 class="form-control margin-bottom" 
                                                 rows="4"
                                                 placeholder="Enter any special instructions (e.g., Parking available at rear, bring your own trial frame)"
+                                                style="color: #000000;"
                                             >@php
                                                 if (isset($job) && $job) {
                                                     echo $job->job_post_desc;
@@ -543,39 +1112,42 @@ $(document).ready(function() {
     // Dynamic Date-Time Rows
     function addDateTimeRow() {
         const rowHtml = `
-            <div class="datetime-row margin-bottom" style="border:1px solid #ddd; padding:15px; border-radius:5px; margin-bottom:10px; position:relative;">
-                <button type="button" class="btn btn-sm btn-danger remove-datetime-row" style="position:absolute; top:5px; right:5px;">
+            <div class="datetime-row">
+                <button type="button" class="btn btn-sm btn-danger remove-datetime-row">
                     <i class="fa fa-times"></i>
                 </button>
-                <div class="row" style="margin-top:20px;">
+                <div class="row">
                     <div class="col-md-4">
                         <label>Date</label>
                         <input 
                             type="text" 
                             name="job_dates[]" 
-                            class="form-control margin-bottom req-datepicker datetime-date" 
+                            class="form-control req-datepicker datetime-date" 
                             pattern="\\d{2}/\\d{2}/\\d{4}" 
                             placeholder="dd/mm/yyyy" 
                             required
                             readonly
+                            style="color: #000000;"
                         >
                     </div>
                     <div class="col-md-4">
-                        <label>Start Time (HH:mm)</label>
+                        <label>Start Time</label>
                         <input 
                             type="time" 
                             name="job_start_times[]" 
-                            class="form-control margin-bottom datetime-start-time" 
+                            class="form-control datetime-start-time" 
                             required
+                            style="color: #000000;"
                         >
                     </div>
                     <div class="col-md-4">
-                        <label>End Time (HH:mm)</label>
+                        <label>End Time</label>
                         <input 
                             type="time" 
                             name="job_end_times[]" 
-                            class="form-control margin-bottom datetime-end-time" 
+                            class="form-control datetime-end-time" 
                             required
+                            style="color: #000000;"
                         >
                     </div>
                 </div>
@@ -615,13 +1187,13 @@ $(document).ready(function() {
     const blockHtml = `
         <div class="add_block timeline-item">
             <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label>Date</label>
-                    <input type="date" name="job_date_new[]" class="form-control margin-bottom timeline-date" placeholder="Enter date" required>
+                    <input type="date" name="job_date_new[]" class="form-control margin-bottom timeline-date" placeholder="Enter date" required style="color: #000000;">
                 </div>
                 <div class="col-md-2">
                     <label>Time</label>
-                    <select name="job_timeline_time[]" class="form-control margin-bottom timeline-time" required>
+                    <select name="job_timeline_time[]" class="form-control margin-bottom timeline-time" required style="color: #000000;">
                         <option value="">Select Time</option>
                         <option value="09:00">09:00</option>
                         <option value="09:30">09:30</option>
@@ -642,9 +1214,9 @@ $(document).ready(function() {
                         <option value="17:00">17:00</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label>Increase Rate</label>
-                    <input type="number" name="job_rate_new[]" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required>
+                    <input type="number" name="job_rate_new[]" class="form-control margin-bottom timeline-rate" placeholder="£0" min="0" max="999999" required style="color: #000000;">
                 </div>
                 <div class="col-md-3">
                     <label>&nbsp;</label>

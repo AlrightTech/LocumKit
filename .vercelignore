@@ -1,0 +1,47 @@
+# Development files
+node_modules/
+.git/
+.github/
+.env
+.env.*
+!.env.example
+
+# Laravel specific
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+tests/
+phpunit.xml
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+mix-manifest.json
+public/mix-manifest.json
+
+# Documentation
+*.md
+!README.md
+
+# Temporary files
+*.log
+nohup.out
+
+# Deployment scripts
+deploy.sh
+.cpanel.yml
+
+
+
+

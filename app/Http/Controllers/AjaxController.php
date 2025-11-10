@@ -862,7 +862,17 @@ class AjaxController extends Controller
     public function unblockBlockedFreelancer(Request $request)
     {
         $un_block_id = $request->input("un_block_id");
-        BlockUser::where("id", $un_block_id)->delete();
-        return new JsonResponse();
+        
+        // Ensure the employer owns this block record
+        $blockUser = BlockUser::where("id", $un_block_id)
+            ->where("employer_id", Auth::user()->id)
+            ->first();
+        
+        if ($blockUser) {
+            $blockUser->delete();
+            return new JsonResponse(["success" => true, "message" => "Locum unblocked successfully"]);
+        }
+        
+        return new JsonResponse(["success" => false, "message" => "Block record not found"], 404);
     }
 }

@@ -36,7 +36,7 @@ require '../vendor/autoload.php';
 |
 */
 
-$app = require_once '..//bootstrap/app.php';
+$app = require_once '../bootstrap/app.php';
 
 /*
 |--------------------------------------------------------------------------

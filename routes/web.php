@@ -347,6 +347,8 @@ Route::group(["middleware" => ["auth", "verified", "can:is_employer", "is_employ
     Route::post("/cancel-job/{id}", [JobManagementController::class, 'cancelJobPostEmployer'])->name('cancel-job-post');
 
     Route::get("/manage-block-freelancer", [BlockUserController::class, "index"])->name("manage-block-freelancer");
+    Route::delete("/unblock-locum/{id}", [BlockUserController::class, "unblock"])->name("unblock-locum");
+    Route::get("/search-locums", [BlockUserController::class, "searchLocums"])->name("search-locums");
 
     Route::get("/job-search/{id}", [EmployerJobsController::class, 'jobSearch'])->name('job-search');
     Route::post("/invite-for-job/{id}", [JobManagementController::class, 'sendJobInvitation'])->name('invite-for-job');

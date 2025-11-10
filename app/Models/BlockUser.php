@@ -18,4 +18,9 @@ class BlockUser extends Model
     {
         return $this->belongsTo(User::class, "freelancer_id");
     }
+    
+    public function employer()
+    {
+        return $this->belongsTo(User::class, "employer_id");
+    }
 }

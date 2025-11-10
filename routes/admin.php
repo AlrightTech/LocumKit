@@ -39,6 +39,7 @@ Route::get('admin/login', [LoginController::class, 'showLoginForm'])->name('admi
 Route::post('tax/update' , [FinanceController::class , 'taxupdate'])->name('tax.update');
 
 Route::group(['middleware' => ['auth', 'check.role'], "prefix" => "admin"], function () {
+    Route::post('logout', [logincontroller::class, 'logout'])->name('admin.logout');
     Route::get('finance/record', [FinanceController::class, 'record'])->name('finance.record');
     Route::get('finance/profitandloss/{id}/{year}', [FinanceController::class, 'profitAndLoss'])->name('finance.profit.loss');
     Route::post('finance/save_profit_loss', [FinanceController::class, 'profitAndLossSave'])->name('save.profitloss.data');

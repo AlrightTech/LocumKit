@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Notifications\NotifyAdminNotification;
 
 class JobsController extends Controller
@@ -224,25 +225,43 @@ class JobsController extends Controller
         }
 
         //create new job post
-        $job_post = JobPost::create([
+        $jobData = [
             "employer_id" => Auth::user()->id,
             "user_acl_profession_id" => Auth::user()->user_acl_profession_id,
             "job_title" => $job_reference, // Using job_reference as job_title for now
-            "job_reference" => $job_reference,
             "job_date" => $first_date->format("Y-m-d"),
             "job_start_time" => $job_start_time,
-            "job_end_time" => $job_end_time,
             "job_post_desc" => $job_post_desc,
             "job_rate" => $job_rate,
-            "num_locums_needed" => $num_locums_needed,
-            "special_requirements" => $special_requirements_text ?: null,
             "job_type" => 1,
             "job_address" => $store->store_address,
             "job_region" => $store->store_region,
             "job_zip" => $store->store_zip,
             "employer_store_list_id" => $store->id,
             "job_status" => 1,
-        ]);
+        ];
+        
+        // Only include job_reference if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'job_reference')) {
+            $jobData["job_reference"] = $job_reference;
+        }
+        
+        // Only include job_end_time if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'job_end_time')) {
+            $jobData["job_end_time"] = $job_end_time;
+        }
+        
+        // Only include num_locums_needed if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'num_locums_needed')) {
+            $jobData["num_locums_needed"] = $num_locums_needed;
+        }
+        
+        // Only include special_requirements if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'special_requirements')) {
+            $jobData["special_requirements"] = $special_requirements_text ?: null;
+        }
+        
+        $job_post = JobPost::create($jobData);
         
         // Notify admin about new job post (wrap in try-catch to prevent mail errors from breaking job submission)
         try {
@@ -350,22 +369,40 @@ class JobsController extends Controller
         }
 
         //update the job post
-        JobPost::where("id", $job->id)->update([
+        $updateData = [
             "job_title" => $job_reference,
-            "job_reference" => $job_reference,
             "job_date" => $first_date->format("Y-m-d"),
             "job_start_time" => $job_start_time,
-            "job_end_time" => $job_end_time,
             "job_post_desc" => $job_post_desc,
             "job_rate" => $job_rate,
-            "num_locums_needed" => $num_locums_needed,
-            "special_requirements" => $special_requirements_text ?: null,
             "job_type" => 1,
             "job_address" => $store->store_address,
             "job_region" => $store->store_region,
             "job_zip" => $store->store_zip,
             "employer_store_list_id" => $store->id,
-        ]);
+        ];
+        
+        // Only include job_reference if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'job_reference')) {
+            $updateData["job_reference"] = $job_reference;
+        }
+        
+        // Only include job_end_time if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'job_end_time')) {
+            $updateData["job_end_time"] = $job_end_time;
+        }
+        
+        // Only include num_locums_needed if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'num_locums_needed')) {
+            $updateData["num_locums_needed"] = $num_locums_needed;
+        }
+        
+        // Only include special_requirements if the column exists in the database
+        if (Schema::hasColumn('job_posts', 'special_requirements')) {
+            $updateData["special_requirements"] = $special_requirements_text ?: null;
+        }
+        
+        JobPost::where("id", $job->id)->update($updateData);
 
         //delete all previous timelines and create new ones with new data
         $job->job_post_timelines()->delete();

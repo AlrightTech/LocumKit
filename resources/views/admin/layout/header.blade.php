@@ -80,7 +80,7 @@
                         <a href="javascript:void(0);" onclick="$('#logout-form').submit();" title="Logout" alt="Logout">
                             <span class="glyphicon glyphicon-off"></span> Logout </a>
                     </li>
-                    <form style="display: none;" aria-hidden="true" action="/logout" id="logout-form" style="display: inline-block;" method="post" hidden>
+                    <form style="display: none;" aria-hidden="true" action="{{ route('admin.logout') }}" id="logout-form" style="display: inline-block;" method="post" hidden>
                         @csrf
                     </form>
                 </ul>
