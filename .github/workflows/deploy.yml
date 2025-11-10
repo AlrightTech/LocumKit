@@ -78,6 +78,33 @@ jobs:
           tar -czf ../deploy.tar.gz .
           cd ..
       
+      - name: Validate deployment secrets
+        run: |
+          SSH_HOST="${{ secrets.CPANEL_SSH_HOST || secrets.CPANEL_HOST }}"
+          SSH_USER="${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}"
+          
+          if [ -z "$SSH_HOST" ] || [ "$SSH_HOST" = "***" ] || [ "$SSH_HOST" = "yourdomain.com" ]; then
+            echo "❌ Error: CPANEL_SSH_HOST or CPANEL_HOST secret is missing or invalid!"
+            echo "Please set CPANEL_SSH_HOST in GitHub Secrets with a valid hostname or IP address."
+            exit 1
+          fi
+          
+          if [ -z "$SSH_USER" ] || [ "$SSH_USER" = "***" ] || [ "$SSH_USER" = "username" ]; then
+            echo "❌ Error: CPANEL_SSH_USERNAME or CPANEL_USERNAME secret is missing or invalid!"
+            echo "Please set CPANEL_SSH_USERNAME in GitHub Secrets with your cPanel username."
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.CPANEL_SSH_KEY }}" ]; then
+            echo "❌ Error: CPANEL_SSH_KEY secret is missing!"
+            echo "Please set CPANEL_SSH_KEY in GitHub Secrets with your SSH private key."
+            exit 1
+          fi
+          
+          echo "✅ All required secrets are present"
+          echo "Host: $SSH_HOST"
+          echo "Username: $SSH_USER"
+      
       - name: Deploy to cPanel via SSH
         uses: appleboy/scp-action@master
         with:
