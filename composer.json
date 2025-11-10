@@ -48,7 +48,7 @@
     "scripts": {
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php -r \"if (file_exists('.env') || getenv('CI') === false) { @php artisan package:discover --ansi; } else { echo 'Skipping package:discover in CI environment\\n'; }\""
+            "@php -r \"if (file_exists('.env') && getenv('CI') !== 'true') { @php artisan package:discover --ansi; } else { echo 'Skipping package:discover in CI environment\\n'; }\""
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
