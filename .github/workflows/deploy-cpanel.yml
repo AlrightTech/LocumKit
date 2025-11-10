@@ -25,7 +25,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.2'
           extensions: mbstring, xml, bcmath, pdo, pdo_mysql, fileinfo, openssl, tokenizer, json, ctype, gd, zip
           coverage: none
       
@@ -128,12 +128,14 @@ jobs:
             
             # Fallback to common PHP paths if version-specific not found
             if [ ! -f "$PHP_BIN" ]; then
-              if [ -f "/usr/local/bin/php81" ]; then
-                PHP_BIN="/usr/local/bin/php81"
-              elif [ -f "/usr/local/bin/php82" ]; then
+              if [ -f "/usr/local/bin/php82" ]; then
                 PHP_BIN="/usr/local/bin/php82"
-              elif [ -f "/usr/local/bin/php80" ]; then
-                PHP_BIN="/usr/local/bin/php80"
+              elif [ -f "/usr/local/bin/php83" ]; then
+                PHP_BIN="/usr/local/bin/php83"
+              elif [ -f "/usr/local/bin/php84" ]; then
+                PHP_BIN="/usr/local/bin/php84"
+              elif [ -f "/usr/local/bin/php81" ]; then
+                PHP_BIN="/usr/local/bin/php81"
               else
                 PHP_BIN="php"
               fi

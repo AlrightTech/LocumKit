@@ -1,14 +1,16 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/murree125/public_html/
-    - export PHP_BIN=/usr/local/bin/php81
+    - export PHP_BIN=/usr/local/bin/php82
     - |
-      # Detect PHP version if php81 doesn't exist
+      # Detect PHP version if php82 doesn't exist
       if [ ! -f "$PHP_BIN" ]; then
-        if [ -f "/usr/local/bin/php82" ]; then
-          export PHP_BIN=/usr/local/bin/php82
-        elif [ -f "/usr/local/bin/php80" ]; then
-          export PHP_BIN=/usr/local/bin/php80
+        if [ -f "/usr/local/bin/php83" ]; then
+          export PHP_BIN=/usr/local/bin/php83
+        elif [ -f "/usr/local/bin/php84" ]; then
+          export PHP_BIN=/usr/local/bin/php84
+        elif [ -f "/usr/local/bin/php81" ]; then
+          export PHP_BIN=/usr/local/bin/php81
         else
           export PHP_BIN=php
         fi

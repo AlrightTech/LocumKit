@@ -100,7 +100,7 @@ Before deploying, ensure:
 - [ ] Database is accessible from the server
 - [ ] Storage directories have proper permissions (755 for directories, 644 for files)
 - [ ] `public/storage` symlink exists (created automatically by deployment)
-- [ ] PHP version matches your requirements (PHP 8.1+)
+- [ ] PHP version matches your requirements (PHP 8.2+)
 - [ ] Required PHP extensions are installed
 - [ ] Composer is available on the server
 - [ ] Node.js and npm are available (if building assets on server)

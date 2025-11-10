@@ -13,14 +13,16 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOY_PATH="${DEPLOY_PATH:-/home/$(whoami)/public_html}"
-PHP_BIN="${PHP_BIN:-/usr/local/bin/php81}"
+PHP_BIN="${PHP_BIN:-/usr/local/bin/php82}"
 
-# Detect PHP version if php81 doesn't exist
+# Detect PHP version if php82 doesn't exist
 if [ ! -f "$PHP_BIN" ]; then
-  if [ -f "/usr/local/bin/php82" ]; then
-    PHP_BIN="/usr/local/bin/php82"
-  elif [ -f "/usr/local/bin/php80" ]; then
-    PHP_BIN="/usr/local/bin/php80"
+  if [ -f "/usr/local/bin/php83" ]; then
+    PHP_BIN="/usr/local/bin/php83"
+  elif [ -f "/usr/local/bin/php84" ]; then
+    PHP_BIN="/usr/local/bin/php84"
+  elif [ -f "/usr/local/bin/php81" ]; then
+    PHP_BIN="/usr/local/bin/php81"
   else
     PHP_BIN="php"
   fi

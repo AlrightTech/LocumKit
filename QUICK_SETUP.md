@@ -97,8 +97,9 @@ chmod -R 755 storage bootstrap/cache public
 - Or install Composer: `curl -sS https://getcomposer.org/installer | php`
 
 **"PHP version mismatch"**
-- Check available: `ls /usr/local/bin/php*`
+- Project requires PHP 8.2+ (check: `ls /usr/local/bin/php*`)
 - Update `.cpanel.yml` or workflow if needed
+- Ensure your cPanel server has PHP 8.2 or higher installed
 
 **"SSH connection failed"**
 - Verify SSH is enabled in cPanel
