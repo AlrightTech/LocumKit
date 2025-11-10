@@ -261,4 +261,25 @@ jobs:
               $PHP_BIN artisan storage:link || true
             fi
             
-            echo "Deployment completed successfully!"
+            # Verify public folder structure
+            if [ ! -f "public/index.php" ]; then
+              echo "⚠️  WARNING: public/index.php not found!"
+              echo "This may indicate the document root is not pointing to the public folder."
+            fi
+            
+            # Check if .htaccess exists in public folder
+            if [ ! -f "public/.htaccess" ]; then
+              echo "⚠️  WARNING: public/.htaccess not found!"
+            fi
+            
+            echo "✅ Deployment completed successfully!"
+            echo ""
+            echo "📋 IMPORTANT: Verify your subdomain document root points to the 'public' folder"
+            echo "   Current deployment path: $DEPLOY_PATH"
+            echo "   Document root should be: $DEPLOY_PATH/public"
+            echo ""
+            echo "   To fix 404 errors:"
+            echo "   1. Go to cPanel → Subdomains"
+            echo "   2. Click 'Manage' next to locumkit.murreefoods.com"
+            echo "   3. Change Document Root to: $DEPLOY_PATH/public"
+            echo "   4. Save changes"
