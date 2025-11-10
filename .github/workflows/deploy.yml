@@ -81,37 +81,44 @@ jobs:
       - name: Deploy to cPanel via SSH
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USERNAME }}
+          host: ${{ secrets.CPANEL_SSH_HOST || secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}
           key: ${{ secrets.CPANEL_SSH_KEY }}
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           source: "deploy.tar.gz"
-          target: "/home/${{ secrets.CPANEL_USERNAME }}/tmp/"
+          target: "/home/${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}/tmp/"
       
       - name: Extract and deploy on server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USERNAME }}
+          host: ${{ secrets.CPANEL_SSH_HOST || secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}
           key: ${{ secrets.CPANEL_SSH_KEY }}
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           script: |
-            cd ${{ secrets.CPANEL_DEPLOY_PATH }}
+            DEPLOY_PATH="${{ secrets.CPANEL_DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_PATH" ]; then
+              DEPLOY_PATH="/home/${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}/public_html"
+            fi
+            cd "$DEPLOY_PATH"
             
             # Backup current version
             if [ -d "current" ]; then
               cp -r current backup_$(date +%Y%m%d_%H%M%S)
             fi
             
+            # Get username for paths
+            SSH_USER="${{ secrets.CPANEL_SSH_USERNAME || secrets.CPANEL_USERNAME }}"
+            
             # Extract new version
-            tar -xzf /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy.tar.gz -C /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy_new
+            tar -xzf /home/$SSH_USER/tmp/deploy.tar.gz -C /home/$SSH_USER/tmp/deploy_new
             
             # Run Laravel deployment commands
-            cd /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy_new
+            cd /home/$SSH_USER/tmp/deploy_new
             
             # Set permissions
             chmod -R 755 storage bootstrap/cache
-            chown -R ${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_USERNAME }} storage bootstrap/cache
+            chown -R $SSH_USER:$SSH_USER storage bootstrap/cache
             
             # Detect PHP version
             PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;")
@@ -147,13 +154,13 @@ jobs:
             $PHP_BIN artisan view:cache
             
             # Move to production directory
-            if [ -d "${{ secrets.CPANEL_DEPLOY_PATH }}/current" ]; then
-              rm -rf ${{ secrets.CPANEL_DEPLOY_PATH }}/current
+            if [ -d "$DEPLOY_PATH/current" ]; then
+              rm -rf "$DEPLOY_PATH/current"
             fi
-            mv /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy_new ${{ secrets.CPANEL_DEPLOY_PATH }}/current
+            mv /home/$SSH_USER/tmp/deploy_new "$DEPLOY_PATH/current"
             
             # Cleanup
-            rm -f /home/${{ secrets.CPANEL_USERNAME }}/tmp/deploy.tar.gz
+            rm -f /home/$SSH_USER/tmp/deploy.tar.gz
             
             # Restart PHP-FPM (if needed)
             # /usr/local/cpanel/scripts/restartsrv_php-fpm
