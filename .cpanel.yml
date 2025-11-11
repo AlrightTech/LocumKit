@@ -1,15 +1,29 @@
+# .cpanel.yml
 deployment:
   tasks:
+    # Set the document root path
     - export DEPLOYPATH=/locumkit.murreefoods.com
-    # Copy all files from repo to document root
-    - /bin/cp -R * $DEPLOYPATH
-    # Copy .env separately
-    - /bin/cp -R .env $DEPLOYPATH/.env
-    # Composer install
-    - cd $DEPLOYPATH && composer install --no-dev --optimize-autoloader
-    # Laravel migrations
-    - cd $DEPLOYPATH && php artisan migrate --force
-    # Cache configs
-    - cd $DEPLOYPATH && php artisan config:cache
-    - cd $DEPLOYPATH && php artisan route:cache
-    - cd $DEPLOYPATH && php artisan view:cache
+
+    # Copy all files from repository to document root, excluding .git
+    - /bin/rsync -av --exclude='.git' /home/murree125/repositories/LocumKit/ $DEPLOYPATH/
+
+    # Copy .env separately (make sure it's configured correctly)
+    - /bin/cp -R /home/murree125/repositories/LocumKit/.env $DEPLOYPATH/.env
+
+    # Navigate to document root
+    - cd $DEPLOYPATH
+
+    # Install PHP dependencies without dev packages
+    - composer install --no-dev --optimize-autoloader
+
+    # Run database migrations safely
+    - php artisan migrate --force
+
+    # Clear and cache Laravel configurations
+    - php artisan config:cache
+    - php artisan route:cache
+    - php artisan view:cache
+
+    # Set correct permissions for storage and cache
+    - chmod -R 775 storage bootstrap/cache
+    - chown -R murree125:murree125 storage bootstrap/cache
