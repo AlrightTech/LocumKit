@@ -1,76 +1,14 @@
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/murree125/public_html/
-    - export PHP_BIN=/usr/local/bin/php82
-    - |
-      # Detect PHP version if php82 doesn't exist
-      if [ ! -f "$PHP_BIN" ]; then
-        if [ -f "/usr/local/bin/php83" ]; then
-          export PHP_BIN=/usr/local/bin/php83
-        elif [ -f "/usr/local/bin/php84" ]; then
-          export PHP_BIN=/usr/local/bin/php84
-        elif [ -f "/usr/local/bin/php81" ]; then
-          export PHP_BIN=/usr/local/bin/php81
-        else
-          export PHP_BIN=php
-        fi
-      fi
-    - |
-      # Copy files excluding unnecessary directories
-      rsync -av --delete \
-        --exclude='.git' \
-        --exclude='.gitignore' \
-        --exclude='node_modules' \
-        --exclude='vendor' \
-        --exclude='.github' \
-        --exclude='tests' \
-        --exclude='storage/logs/*' \
-        --exclude='storage/framework/cache/*' \
-        --exclude='storage/framework/sessions/*' \
-        --exclude='storage/framework/views/*' \
-        --exclude='bootstrap/cache/*.php' \
-        --exclude='.env.example' \
-        --exclude='phpunit.xml' \
-        --exclude='.phpunit.result.cache' \
-        --exclude='*.md' \
-        --exclude='deploy.sh' \
-        --exclude='nohup.out' \
-        --exclude='error_log' \
-        --exclude='*.log' \
-        ./ $DEPLOYPATH/
-    - |
-      # Install Composer dependencies
-      cd $DEPLOYPATH
-      /usr/local/bin/composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader || \
-      composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-    - |
-      # Install NPM dependencies and build assets (if package.json exists)
-      if [ -f "$DEPLOYPATH/package.json" ]; then
-        cd $DEPLOYPATH
-        npm ci --production || npm install --production
-        npm run production || true
-      fi
-    - |
-      # Set proper permissions
-      chmod -R 755 $DEPLOYPATH/storage
-      chmod -R 755 $DEPLOYPATH/bootstrap/cache
-      chmod -R 755 $DEPLOYPATH/public
-    - |
-      # Clear and cache Laravel
-      cd $DEPLOYPATH
-      $PHP_BIN artisan config:clear || true
-      $PHP_BIN artisan cache:clear || true
-      $PHP_BIN artisan view:clear || true
-      $PHP_BIN artisan route:clear || true
-      $PHP_BIN artisan config:cache || true
-      $PHP_BIN artisan route:cache || true
-      $PHP_BIN artisan view:cache || true
-      $PHP_BIN artisan optimize || true
-    - |
-      # Create storage link if it doesn't exist
-      cd $DEPLOYPATH
-      if [ ! -L "$DEPLOYPATH/public/storage" ]; then
-        $PHP_BIN artisan storage:link || true
-      fi
-    # Uncomment the line below to run migrations automatically
-    # - cd $DEPLOYPATH && $PHP_BIN artisan migrate --force
+    - export DEPLOYPATH=/home/username/public_html
+    # Copy all files except .git to public_html
+    - /bin/cp -R * $DEPLOYPATH
+    - /bin/cp -R .env $DEPLOYPATH/.env
+    # Install composer dependencies
+    - cd $DEPLOYPATH && composer install --no-dev --optimize-autoloader
+    # Run migrations
+    - cd $DEPLOYPATH && php artisan migrate --force
+    # Clear caches
+    - cd $DEPLOYPATH && php artisan config:cache
+    - cd $DEPLOYPATH && php artisan route:cache
+    - cd $DEPLOYPATH && php artisan view:cache
