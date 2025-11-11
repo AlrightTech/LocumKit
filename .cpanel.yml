@@ -1,14 +1,15 @@
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/username/public_html
-    # Copy all files except .git to public_html
+    - export DEPLOYPATH=/locumkit.murreefoods.com
+    # Copy all files from repo to document root
     - /bin/cp -R * $DEPLOYPATH
+    # Copy .env separately
     - /bin/cp -R .env $DEPLOYPATH/.env
-    # Install composer dependencies
+    # Composer install
     - cd $DEPLOYPATH && composer install --no-dev --optimize-autoloader
-    # Run migrations
+    # Laravel migrations
     - cd $DEPLOYPATH && php artisan migrate --force
-    # Clear caches
+    # Cache configs
     - cd $DEPLOYPATH && php artisan config:cache
     - cd $DEPLOYPATH && php artisan route:cache
     - cd $DEPLOYPATH && php artisan view:cache
