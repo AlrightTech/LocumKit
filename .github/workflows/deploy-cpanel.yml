@@ -142,13 +142,24 @@ jobs:
             echo "⚠️  Warning: .env file not found. Make sure it exists on the server."
           fi
       
+      - name: Prepare FTP deployment path
+        id: ftp_path
+        run: |
+          DEPLOY_PATH="${{ secrets.CPANEL_DEPLOY_PATH || '/public_html' }}"
+          # Ensure path ends with / for FTP-Deploy-Action
+          if [[ "$DEPLOY_PATH" != */ ]]; then
+            DEPLOY_PATH="${DEPLOY_PATH}/"
+          fi
+          echo "FTP deployment path: $DEPLOY_PATH"
+          echo "path=$DEPLOY_PATH" >> $GITHUB_OUTPUT
+      
       - name: Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@4.3.0
         with:
           server: ${{ secrets.CPANEL_FTP_HOST }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          server-dir: ${{ secrets.CPANEL_DEPLOY_PATH || '/public_html/' }}
+          server-dir: ${{ steps.ftp_path.outputs.path }}
           exclude: |
             **/.git*
             **/.git*/
@@ -226,9 +237,34 @@ jobs:
             
             echo "Using PHP: $PHP_BIN"
             
+            # Check if .env exists, if not create it from .env.example
+            if [ ! -f ".env" ]; then
+              echo "⚠️  .env file not found. Creating from .env.example..."
+              if [ -f ".env.example" ]; then
+                cp .env.example .env
+                echo "✅ Created .env from .env.example"
+              else
+                echo "⚠️  .env.example not found. Creating basic .env file..."
+                echo "APP_NAME=LocumKit" > .env
+                echo "APP_ENV=production" >> .env
+                echo "APP_DEBUG=false" >> .env
+                echo "APP_URL=https://locumkit.murreefoods.com" >> .env
+              fi
+            fi
+            
+            # Generate APP_KEY if missing or empty
+            if ! grep -q "APP_KEY=base64:" .env 2>/dev/null || grep -q "^APP_KEY=$" .env 2>/dev/null || grep -q "^APP_KEY=\"\"" .env 2>/dev/null; then
+              echo "🔑 Generating APP_KEY..."
+              $PHP_BIN artisan key:generate --force
+              echo "✅ APP_KEY generated successfully"
+            else
+              echo "✅ APP_KEY already exists in .env"
+            fi
+            
             # Set proper permissions
             chmod -R 755 storage bootstrap/cache
             chmod -R 755 public
+            chmod 644 .env 2>/dev/null || true
             
             # Install/update Composer dependencies on server (if vendor not deployed)
             if [ ! -d "vendor" ] || [ "${{ secrets.CPANEL_INSTALL_COMPOSER }}" == "true" ]; then

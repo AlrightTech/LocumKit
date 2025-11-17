@@ -374,7 +374,18 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
 
                 $mail_subject = 'Locumkit job notification: Date : ' . get_date_with_default_format($job->job_date) . ' / Location : ' . $job_store_address . ' / Rate : ' . set_amount_format($job->job_rate);
 
-                Mail::to($freelancer->email)->send(new FreelancerJobInvitationMail($mail_subject, $mail_body));
+                try {
+                    Mail::to($freelancer->email)->send(new FreelancerJobInvitationMail($mail_subject, $mail_body));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send job invitation email to freelancer', [
+                        'freelancer_id' => $freelancer->id,
+                        'freelancer_email' => $freelancer->email,
+                        'job_id' => $job->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // Continue processing - notifications and SMS will still be sent
+                }
                 
                 // Add delay to prevent hitting Mailtrap rate limit (max 2 emails per second)
                 usleep(600000); // 0.6 second delay
@@ -483,7 +494,18 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
 
                 $mail_subject = 'Locumkit job notification: Date : ' . get_date_with_default_format($job->job_date) . ' / Location : ' . $job_store_address . ' / Rate : ' . set_amount_format($job->job_rate);
 
-                Mail::to($freelancer->email)->send(new FreelancerJobInvitationMail($mail_subject, $mail_body));
+                try {
+                    Mail::to($freelancer->email)->send(new FreelancerJobInvitationMail($mail_subject, $mail_body));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send job invitation email to private freelancer', [
+                        'freelancer_id' => $freelancer->id,
+                        'freelancer_email' => $freelancer->email,
+                        'job_id' => $job->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // Continue processing - SMS will still be sent
+                }
                 
                 // Add delay to prevent hitting Mailtrap rate limit (max 2 emails per second)
                 usleep(600000); // 0.6 second delay
@@ -557,12 +579,31 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         // <p>Should you need to cancel this job, please <a href="' . url('/cancel-job/' . $job->id) . '">click here</a>.</p>
         $admin_mail_subject = 'Locumkit job notification: New job posting : #' . $job->id;
 
-        Mail::to(config('app.admin_mail'))->send(new FreelancerJobInvitationMail($admin_mail_subject, $admin_mail_body));
+        try {
+            Mail::to(config('app.admin_mail'))->send(new FreelancerJobInvitationMail($admin_mail_subject, $admin_mail_body));
+        } catch (\Exception $e) {
+            Log::error('Failed to send job invitation email to admin', [
+                'admin_email' => config('app.admin_mail'),
+                'job_id' => $job->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
         
         // Add delay to prevent hitting Mailtrap rate limit
         usleep(600000); // 0.6 second delay
 
-        Mail::to(Auth::user()->email)->send(new FreelancerJobInvitationMail($employer_mail_subject, $employer_mail_body));
+        try {
+            Mail::to(Auth::user()->email)->send(new FreelancerJobInvitationMail($employer_mail_subject, $employer_mail_body));
+        } catch (\Exception $e) {
+            Log::error('Failed to send job invitation email to employer', [
+                'employer_id' => Auth::user()->id,
+                'employer_email' => Auth::user()->email,
+                'job_id' => $job->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
 
         $this->jobsmsController->jobInvitationemployerSms($job->employer, $job->id, null);
 
@@ -779,11 +820,22 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         $job_store_address = $job->job_address . ", " . $job->job_region . ", " . $job->job_zip;    
         $mail_subject = 'Locumkit Accept Job Notification ' . get_date_with_default_format($job->job_date) . ' / Location: ' . $job_store_address . ' / Rate: ' . set_amount_format($job->job_rate);
         
-        Mail::send([], [], function ($message) use ($employer, $mail_subject, $mail_body) {
-            $message->to($employer->email)
-                ->subject($mail_subject)
-                ->html($mail_body);
-        });
+        try {
+            Mail::send([], [], function ($message) use ($employer, $mail_subject, $mail_body) {
+                $message->to($employer->email)
+                    ->subject($mail_subject)
+                    ->html($mail_body);
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to send job acceptance email to employer', [
+                'employer_id' => $employer->id,
+                'employer_email' => $employer->email,
+                'job_id' => $job->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Continue processing - the job acceptance will still be recorded
+        }
         
         $employer_answers = $employer->user_answers;
 
@@ -849,14 +901,27 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
         $freelancer_message = $request->input("message");
         $employer = $job->employer;
 
-        $sent = Mail::to($employer->email)->send(new JobNegotiateMail($job, $freelancer, $employer, $expected_rate, $freelancer_message));
-        $this->notifyController->notification($job->id, "Freelancer want to negotiate on job.", "Locumkit Job Negotiation. Rate expected {$expected_rate}", $employer->id, "negotiateJob");
-        if ($sent) {
-            $job_action_for_freelancer->is_negotiated = true;
-            $job_action_for_freelancer->negotiation_rate = $expected_rate;
-            $job_action_for_freelancer->negotiation_message = $freelancer_message;
-            $job_action_for_freelancer->save();
-            return redirect(route('freelancer.dashboard'))->with("success", "We notify the employer about your expected rate. If employer accept the offer we notify you.");
+        try {
+            $sent = Mail::to($employer->email)->send(new JobNegotiateMail($job, $freelancer, $employer, $expected_rate, $freelancer_message));
+            $this->notifyController->notification($job->id, "Freelancer want to negotiate on job.", "Locumkit Job Negotiation. Rate expected {$expected_rate}", $employer->id, "negotiateJob");
+            if ($sent) {
+                $job_action_for_freelancer->is_negotiated = true;
+                $job_action_for_freelancer->negotiation_rate = $expected_rate;
+                $job_action_for_freelancer->negotiation_message = $freelancer_message;
+                $job_action_for_freelancer->save();
+                return redirect(route('freelancer.dashboard'))->with("success", "We notify the employer about your expected rate. If employer accept the offer we notify you.");
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send job negotiation email to employer', [
+                'employer_id' => $employer->id,
+                'employer_email' => $employer->email,
+                'job_id' => $job->id,
+                'freelancer_id' => $freelancer->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Still send notification even if email fails
+            $this->notifyController->notification($job->id, "Freelancer want to negotiate on job.", "Locumkit Job Negotiation. Rate expected {$expected_rate}", $employer->id, "negotiateJob");
         }
 
         return redirect(route('freelancer.dashboard'))->with("error", "Some error occured during notification to employer. Please try again.");
@@ -1349,12 +1414,30 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
             
             // Send feedback request to employer
             if ($employer) {
-                Mail::to($employer->email)->send(new \App\Mail\FeedbackRequestMail($job, $freelancer, 'employer'));
+                try {
+                    Mail::to($employer->email)->send(new \App\Mail\FeedbackRequestMail($job, $freelancer, 'employer'));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send feedback request email to employer', [
+                        'employer_id' => $employer->id,
+                        'employer_email' => $employer->email,
+                        'job_id' => $job->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             
             // Send feedback request to freelancer
             if ($freelancer) {
-                Mail::to($freelancer->email)->send(new \App\Mail\FeedbackRequestMail($job, $employer, 'freelancer'));
+                try {
+                    Mail::to($freelancer->email)->send(new \App\Mail\FeedbackRequestMail($job, $employer, 'freelancer'));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send feedback request email to freelancer', [
+                        'freelancer_id' => $freelancer->id,
+                        'freelancer_email' => $freelancer->email,
+                        'job_id' => $job->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
         }
     }
@@ -1439,7 +1522,16 @@ $answer_value = is_array($decoded) ? implode(" / ", $decoded) : $user_answer->ty
     {
         $employer = User::find($job->employer_id);
         if ($employer) {
-            Mail::to($employer->email)->send(new \App\Mail\JobAcceptedNotification($job, $freelancer));
+            try {
+                Mail::to($employer->email)->send(new \App\Mail\JobAcceptedNotification($job, $freelancer));
+            } catch (\Exception $e) {
+                Log::error('Failed to send job accepted notification email to employer', [
+                    'employer_id' => $employer->id,
+                    'employer_email' => $employer->email,
+                    'job_id' => $job->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
     }
 }

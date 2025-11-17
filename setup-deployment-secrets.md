@@ -74,7 +74,8 @@ Before deploying, you need to add these secrets to your GitHub repository.
 - **Example:** `/home/username123/public_html` or `/home/username123/locumkit.murreefoods.com`
 - **Important:** 
   - Path should NOT end with `/public` (that's document root, not deployment path)
-  - Path should NOT end with trailing slash `/`
+  - Path should NOT end with trailing slash `/` (the workflow adds it automatically for FTP)
+  - Use the full absolute path starting with `/home/`
 
 ---
 
