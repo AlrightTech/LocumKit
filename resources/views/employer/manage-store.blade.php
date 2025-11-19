@@ -5,6 +5,57 @@
         ul.ui-autocomplete.ui-front.ui-menu.ui-widget.ui-widget-content {
             max-width: 300px !important;
         }
+        
+        /* Postcode validation styling */
+        input[name^="emp_store_zip_"].is-invalid,
+        input[name^="store_zip_"].is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .postcode-error {
+            display: block;
+            color: #dc3545 !important;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        input[name^="emp_store_zip_"]:focus,
+        input[name^="store_zip_"]:focus {
+            border-color: #66afe9 !important;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+        
+        /* Add Store Form State Management */
+        #addstore {
+            transition: all 0.3s ease;
+        }
+        
+        #add_store_edit {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        #add_store_edit:hover {
+            opacity: 0.8;
+        }
+        
+        #close-add-store-form {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        #close-add-store-form:hover {
+            background-color: #f0f0f0;
+        }
+        
+        #addstore {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
     </style>
 @endpush
 
@@ -70,7 +121,21 @@
                                                    required></div>
                                         <div class="col-xs-3 col-sm-3 col-md-2 no-padding-right"><input type="text" class="width-100 input-text margin-bottom city" name="store_region_{{ $store->id }}" value="{{ $store->store_region }}"
                                                    required></div>
-                                        <div class="col-xs-2 col-sm-2 col-md-2 no-padding-right"><input type="text" class="width-100 input-text margin-bottom" name="store_zip_{{ $store->id }}" value="{{ $store->store_zip }}" required minlength="5" maxlength="8">
+                                        <div class="col-xs-2 col-sm-2 col-md-2 no-padding-right">
+                                            <input 
+                                                type="text" 
+                                                class="width-100 input-text margin-bottom @error('store_zip_' . $store->id) is-invalid @enderror" 
+                                                name="store_zip_{{ $store->id }}" 
+                                                value="{{ old('store_zip_' . $store->id, $store->store_zip) }}" 
+                                                required 
+                                                pattern="[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}"
+                                                title="Please enter a valid UK postcode (e.g., SW1A 1AA, M1 1AA, B33 8TH)"
+                                                style="text-transform: uppercase;"
+                                                maxlength="8"
+                                            >
+                                            @error('store_zip_' . $store->id)
+                                                <span class="field-error" style="display: block; color: #dc3545; font-size: 12px; margin-top: 5px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                         <div class="col-xs-1 col-sm-1 col-md-1"><span class="deleteclass small2" id="{{ $store->id }}"><i class="fa fa-times" title="Remove" aria-hidden="true"></i></span></div>
                                         <input type="hidden" name="store_ids[]" value="{{ $store->id }}">
@@ -137,8 +202,12 @@
 
                             <form id="addstore" action="/employer/manage-store" method="post" class="margin-top" style="display:none;">
                                 @csrf
-                                <div class="col-md-12 margin-top">
-                                    <h2>Add store details</h2>
+                                <input type="hidden" name="_submission_token" value="{{ uniqid('store_', true) }}" id="submission-token">
+                                <div class="col-md-12 margin-top" style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h2 style="margin: 0;">Add store details</h2>
+                                    <button type="button" id="close-add-store-form" class="btn btn-sm btn-default" style="border-radius: 5px; padding: 5px 15px;">
+                                        <i class="fa fa-times"></i> Close
+                                    </button>
                                 </div>
                                 <div class="col-md-12">
                                     <div class="store_block add-new-store-form-wrapp">
@@ -156,8 +225,23 @@
                                             </div>
                                             <div class="col-xs-2 col-sm-2 col-md-2 no-padding-left"><input type="text" name="emp_store_region_{{ $unqiue_value_here }}" required placeholder="Enter Store Region"
                                                        class="input-text width-100 required-field_0 city"></div>
-                                            <div class="col-xs-2 col-sm-2 col-md-2 no-padding-left"><input type="text" name="emp_store_zip_{{ $unqiue_value_here }}" required placeholder="Enter Store post code"
-                                                       class="input-text width-100 required-field_0" minilength="5" maxlength="8">
+                                            <div class="col-xs-2 col-sm-2 col-md-2 no-padding-left">
+                                                <input 
+                                                    type="text" 
+                                                    name="emp_store_zip_{{ $unqiue_value_here }}" 
+                                                    required 
+                                                    placeholder="e.g., SW1A 1AA" 
+                                                    pattern="[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}"
+                                                    title="Please enter a valid UK postcode (e.g., SW1A 1AA, M1 1AA, B33 8TH)"
+                                                    class="input-text width-100 required-field_0 @error('emp_store_zip_' . $unqiue_value_here) is-invalid @enderror" 
+                                                    style="text-transform: uppercase;"
+                                                    maxlength="8"
+                                                    value="{{ old('emp_store_zip_' . $unqiue_value_here) }}"
+                                                >
+                                                @error('emp_store_zip_' . $unqiue_value_here)
+                                                    <span class="field-error" style="display: block; color: #dc3545; font-size: 12px; margin-top: 5px;">{{ $message }}</span>
+                                                @enderror
+                                                <small style="display: block; color: #6c757d; font-size: 11px; margin-top: 3px;">UK format: SW1A 1AA</small>
                                             </div>
                                             <div class="css_error2 required-field-no_0" style="clear:both;"></div>
                                             <div class="col-md-12 store-timing-div store-opening-tdive-wrapp">
@@ -215,7 +299,12 @@
                                         </div>
                                     </div>
                                     <div class="col-md-offset-4 col-md-2 no-padding-left">
-                                        <button style="border-radius: 10px !important;" class="save-store-btn" name="add_store">Save Store</button>
+                                        <button type="submit" style="border-radius: 10px !important;" class="save-store-btn" name="add_store" id="save-store-btn">
+                                            <span class="btn-text">Save Store</span>
+                                            <span class="btn-loading" style="display: none;">
+                                                <i class="fa fa-spinner fa-spin"></i> Saving...
+                                            </span>
+                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -247,12 +336,134 @@
 
 @push('scripts')
     <script type="text/javascript">
-        $("#add_store_edit").click(function() {
-            if ($('#addstore').css('display') == 'none') {
-                $("#addstore").show(1000);
-            } else {
-                $("#addstore").hide(1000);
+        // State management for Add Store form
+        let addStoreFormState = {
+            isOpen: false,
+            isAnimating: false
+        };
+        
+        // Function to open the add store form
+        function openAddStoreForm() {
+            // Prevent if already open or animating
+            if (addStoreFormState.isOpen || addStoreFormState.isAnimating) {
+                return false;
             }
+            
+            addStoreFormState.isAnimating = true;
+            $('#addstore').slideDown(300, function() {
+                addStoreFormState.isOpen = true;
+                addStoreFormState.isAnimating = false;
+                // Update button text/state
+                $('#add_store_edit').html('<i class="fa fa-minus"></i> Hide form');
+                // Scroll to form for better UX
+                $('html, body').animate({
+                    scrollTop: $('#addstore').offset().top - 20
+                }, 300);
+            });
+            return true;
+        }
+        
+        // Function to close the add store form
+        function closeAddStoreForm() {
+            // Prevent if already closed or animating
+            if (!addStoreFormState.isOpen || addStoreFormState.isAnimating) {
+                return;
+            }
+            
+            addStoreFormState.isAnimating = true;
+            $('#addstore').slideUp(300, function() {
+                addStoreFormState.isOpen = false;
+                addStoreFormState.isAnimating = false;
+                // Reset form fields
+                resetAddStoreForm();
+                // Update button text/state
+                $('#add_store_edit').html('Add another store');
+            });
+        }
+        
+        // Function to reset the add store form
+        function resetAddStoreForm() {
+            const $form = $('#addstore');
+            
+            // Reset all input fields
+            $form.find('input[type="text"]').val('');
+            $form.find('select').each(function() {
+                $(this).prop('selectedIndex', 0);
+            });
+            
+            // Remove any dynamically added store blocks (keep only the first one)
+            $form.find('.store_block .store-details').not(':first').remove();
+            
+            // Reset error states
+            $form.find('.is-invalid').removeClass('is-invalid');
+            $form.find('.field-error, .postcode-error').remove();
+            
+            // Reset submission state
+            $('#save-store-btn').data('submitting', false);
+            $('#save-store-btn').prop('disabled', false);
+            $('#save-store-btn').find('.btn-text').show();
+            $('#save-store-btn').find('.btn-loading').hide();
+        }
+        
+        // Handle "Add another store" button click
+        $("#add_store_edit").click(function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Prevent rapid clicking
+            if (addStoreFormState.isAnimating) {
+                return false;
+            }
+            
+            if (addStoreFormState.isOpen) {
+                // Form is open, close it
+                closeAddStoreForm();
+            } else {
+                // Form is closed, open it (only if not already open)
+                openAddStoreForm();
+            }
+            
+            return false;
+        });
+        
+        // Handle "Close" button click
+        $("#close-add-store-form").click(function(e) {
+            e.preventDefault();
+            closeAddStoreForm();
+        });
+        
+        // Initialize form state on page load
+        $(document).ready(function() {
+            // Check if form should be open (e.g., if there are validation errors)
+            const hasErrors = $('#addstore').find('.field-error, .is-invalid').length > 0;
+            let hasOldInput = false;
+            
+            // Check if any input field has a value
+            $('#addstore').find('input[type="text"]').each(function() {
+                if ($(this).val() && $(this).val().trim() !== '') {
+                    hasOldInput = true;
+                    return false; // break loop
+                }
+            });
+            
+            if (hasErrors || hasOldInput) {
+                // Form has errors or old input, keep it open
+                addStoreFormState.isOpen = true;
+                $('#addstore').show();
+                $('#add_store_edit').html('<i class="fa fa-minus"></i> Hide form');
+            } else {
+                // Form should be closed
+                addStoreFormState.isOpen = false;
+                $('#addstore').hide();
+                $('#add_store_edit').html('Add another store');
+            }
+        });
+        
+        // Close form on successful submission (after redirect)
+        // This will be handled by page reload, but we can also listen for form submission
+        $('#addstore').on('submit', function() {
+            // Form is submitting, will reload page on success
+            // State will reset on page load
         });
 
         var i = $(".store-details").size() + 1;
@@ -279,7 +490,18 @@
                                     <input type="text" name="emp_store_region_${result.key}" required placeholder="Enter Store Region" class="input-text width-100 required-field_${m} city">
                                 </div>
                                 <div class="col-xs-2 col-sm-2 col-md-2 no-padding-left">
-                                    <input type="text" name="emp_store_zip_${result.key}" required placeholder="Enter Store post code" class="input-text width-100 required-field_${m}">
+                                    <input 
+                                        type="text" 
+                                        name="emp_store_zip_${result.key}" 
+                                        required 
+                                        placeholder="e.g., SW1A 1AA" 
+                                        pattern="[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}"
+                                        title="Please enter a valid UK postcode (e.g., SW1A 1AA, M1 1AA, B33 8TH)"
+                                        class="input-text width-100 required-field_${m}" 
+                                        style="text-transform: uppercase;"
+                                        maxlength="8"
+                                    >
+                                    <small style="display: block; color: #6c757d; font-size: 11px; margin-top: 3px;">UK format: SW1A 1AA</small>
                                 </div>
                                 <span class="removeclass small2 "><i class="fa fa-times" title="Remove" aria-hidden="true"></i></span>
                                 <div class="css_error2 required-field-no_${m}" style="clear:both;"> </div>
@@ -299,6 +521,79 @@
             if (i > 1) {
                 $(this).parent('.store-details').remove();
                 i--;
+            }
+        });
+
+        // Prevent double submission for add store form
+        $('#addstore').on('submit', function(e) {
+            const $form = $(this);
+            const $submitBtn = $('#save-store-btn');
+            const $btnText = $submitBtn.find('.btn-text');
+            const $btnLoading = $submitBtn.find('.btn-loading');
+            
+            // Check if form is already being submitted
+            if ($submitBtn.data('submitting') === true) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Mark as submitting
+            $submitBtn.data('submitting', true);
+            
+            // Regenerate submission token for this attempt
+            const newToken = 'store_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            $('#submission-token').val(newToken);
+            
+            // Disable button and show loading state
+            $submitBtn.prop('disabled', true);
+            $btnText.hide();
+            $btnLoading.show();
+            
+            // Re-enable after 10 seconds as a safety measure (in case of error or network issue)
+            const timeoutId = setTimeout(function() {
+                $submitBtn.data('submitting', false);
+                $submitBtn.prop('disabled', false);
+                $btnText.show();
+                $btnLoading.hide();
+            }, 10000);
+            
+            // Clear timeout if form submission completes (handled by page reload or AJAX response)
+            // This is a fallback - the page will reload on successful submission
+        });
+
+        // UK Postcode auto-formatting and validation
+        function formatUKPostcode(input) {
+            let value = input.value.replace(/\s+/g, '').toUpperCase();
+            
+            // Remove any non-alphanumeric characters except spaces
+            value = value.replace(/[^A-Z0-9]/g, '');
+            
+            // Auto-format: Add space before last 3 characters if length > 3
+            if (value.length > 3) {
+                value = value.slice(0, -3) + ' ' + value.slice(-3);
+            }
+            
+            input.value = value;
+        }
+        
+        // Apply postcode formatting to all postcode inputs
+        $(document).on('input', 'input[name^="emp_store_zip_"], input[name^="store_zip_"]', function() {
+            formatUKPostcode(this);
+        });
+        
+        // Validate postcode on blur
+        $(document).on('blur', 'input[name^="emp_store_zip_"], input[name^="store_zip_"]', function() {
+            const postcode = $(this).val().trim();
+            const ukPostcodeRegex = /^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i;
+            
+            if (postcode && !ukPostcodeRegex.test(postcode)) {
+                $(this).addClass('is-invalid');
+                if (!$(this).next('.postcode-error').length) {
+                    $(this).after('<span class="postcode-error field-error" style="display: block; color: #dc3545; font-size: 12px; margin-top: 5px;">Please enter a valid UK postcode format (e.g., SW1A 1AA, M1 1AA, B33 8TH)</span>');
+                }
+            } else {
+                $(this).removeClass('is-invalid');
+                $(this).next('.postcode-error').remove();
             }
         });
 

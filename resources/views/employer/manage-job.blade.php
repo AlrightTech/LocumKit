@@ -269,6 +269,48 @@
             color: #dc3545 !important;
         }
         
+        /* Field error styling */
+        .field-error {
+            color: #dc3545 !important;
+            font-size: 13px;
+            margin-top: 5px;
+            display: block;
+            font-weight: 500;
+        }
+        
+        .has-error input,
+        .has-error select,
+        .has-error textarea {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .has-error .form-control {
+            border-color: #dc3545 !important;
+        }
+        
+        .datetime-row.has-error {
+            border-color: #dc3545 !important;
+            background-color: #fff5f5;
+        }
+        
+        .timeline-item.has-error {
+            border-color: #dc3545 !important;
+            background-color: #fff5f5;
+        }
+        
+        /* Error message container */
+        .error-message {
+            display: block;
+            margin-top: 5px;
+            padding: 5px 10px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            color: #721c24 !important;
+            font-size: 13px;
+        }
+        
         /* Date and Time fields alignment */
         .datetime-row {
             border: 1px solid #ddd;
@@ -718,11 +760,21 @@
                                     @method('PUT')
                                 @endif
                                 <div class="col-md-12 margin-bottom margin-top">
+                                    @if ($errors->any())
+                                        <div class="alert alert-danger" role="alert" style="margin-bottom: 20px;">
+                                            <strong>Please fix the following errors:</strong>
+                                            <ul style="margin-bottom: 0; padding-left: 20px;">
+                                                @foreach ($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="mar-mins" id="step2" style="display:block;">
                                     <!-- 1. Job Reference -->
-                                    <div class="col-md-12">
+                                    <div class="col-md-12 @error('job_reference') has-error @enderror">
                                         <div class="col-md-4">
                                             <label>Job Reference <span class="text-danger">*</span></label>
                                         </div>
@@ -730,9 +782,11 @@
                                             <input 
                                                 type="text" 
                                                 name="job_reference" 
-                                                class="form-control margin-bottom" 
+                                                class="form-control margin-bottom @error('job_reference') is-invalid @enderror" 
                                                 @if (isset($job) && $job && $job->job_reference) 
                                                     value="{{ $job->job_reference }}" 
+                                                @else
+                                                    value="{{ old('job_reference') }}"
                                                 @endif
                                                 placeholder="e.g., OPT-JAN25-001" 
                                                 pattern="[A-Za-z0-9\-]+"
@@ -740,22 +794,34 @@
                                                 required
                                                 style="color: #000000;"
                                             >
+                                            @error('job_reference')
+                                                <span class="field-error">{{ $message }}</span>
+                                            @enderror
                                             <small class="text-muted">A short name or code to identify the job.</small>
                                         </div>
                                     </div>
 
                                     <!-- 2. Location / Store -->
-                                    <div class="col-md-12">
+                                    <div class="col-md-12 @error('job_store') has-error @enderror">
                                         <div class="col-md-4">
                                             <label>Location / Store <span class="text-danger">*</span></label>
                                         </div>
                                         <div class="col-md-8">
-                                            <select name="job_store" id="job_store" class="form-control" required style="color: #000000;">
+                                            <select name="job_store" id="job_store" class="form-control @error('job_store') is-invalid @enderror" required style="color: #000000;">
                                                 <option value="" disabled selected>Select Store</option>
                                                 @foreach ($employer_store_list as $store)
-                                                    <option value="{{ $store->id }}" @if (isset($job) && $job) @selected($job->employer_store_list_id == $store->id) @endif> {{ $store->store_name }} </option>
+                                                    <option value="{{ $store->id }}" 
+                                                        @if (isset($job) && $job) 
+                                                            @selected($job->employer_store_list_id == $store->id)
+                                                        @else
+                                                            @selected(old('job_store') == $store->id)
+                                                        @endif
+                                                    > {{ $store->store_name }} </option>
                                                 @endforeach
                                             </select>
+                                            @error('job_store')
+                                                <span class="field-error">{{ $message }}</span>
+                                            @enderror
                                             <div id="store-details" class="margin-top" style="display:none;">
                                                 <div class="alert alert-info" style="margin-top:10px;">
                                                     <strong>Store Details:</strong><br>
@@ -767,46 +833,67 @@
                                     </div>
 
                                     <!-- 3. Date & Time (Multiple Rows) -->
-                                    <div class="col-md-12">
+                                    <div class="col-md-12 @error('job_dates') has-error @enderror @error('job_start_times') has-error @enderror @error('job_end_times') has-error @enderror">
                                         <div class="col-md-4">
                                             <label>Date & Time <span class="text-danger">*</span></label>
                                         </div>
                                         <div class="col-md-8">
+                                            @error('job_dates')
+                                                <span class="field-error" style="display: block; margin-bottom: 10px;">{{ $message }}</span>
+                                            @enderror
+                                            @error('job_start_times')
+                                                <span class="field-error" style="display: block; margin-bottom: 10px;">{{ $message }}</span>
+                                            @enderror
+                                            @error('job_end_times')
+                                                <span class="field-error" style="display: block; margin-bottom: 10px;">{{ $message }}</span>
+                                            @enderror
                                             <div id="datetime-rows">
-                                                <div class="datetime-row">
+                                                <div class="datetime-row @error('job_dates.0') has-error @enderror @error('job_start_times.0') has-error @enderror @error('job_end_times.0') has-error @enderror">
                                                     <div class="row">
                                                         <div class="col-md-4">
                                                             <label>Date</label>
                                                             <input 
                                                                 type="text" 
                                                                 name="job_dates[]" 
-                                                                class="form-control req-datepicker datetime-date" 
+                                                                class="form-control req-datepicker datetime-date @error('job_dates.0') is-invalid @enderror" 
                                                                 pattern="\d{2}/\d{2}/\d{4}" 
                                                                 placeholder="dd/mm/yyyy" 
+                                                                value="{{ old('job_dates.0') }}"
                                                                 required
                                                                 readonly
                                                                 style="color: #000000;"
                                                             >
+                                                            @error('job_dates.0')
+                                                                <span class="field-error">{{ $message }}</span>
+                                                            @enderror
                                                         </div>
                                                         <div class="col-md-4">
                                                             <label>Start Time</label>
                                                             <input 
                                                                 type="time" 
                                                                 name="job_start_times[]" 
-                                                                class="form-control datetime-start-time" 
+                                                                class="form-control datetime-start-time @error('job_start_times.0') is-invalid @enderror" 
+                                                                value="{{ old('job_start_times.0') }}"
                                                                 required
                                                                 style="color: #000000;"
                                                             >
+                                                            @error('job_start_times.0')
+                                                                <span class="field-error">{{ $message }}</span>
+                                                            @enderror
                                                         </div>
                                                         <div class="col-md-4">
                                                             <label>End Time</label>
                                                             <input 
                                                                 type="time" 
                                                                 name="job_end_times[]" 
-                                                                class="form-control datetime-end-time" 
+                                                                class="form-control datetime-end-time @error('job_end_times.0') is-invalid @enderror" 
+                                                                value="{{ old('job_end_times.0') }}"
                                                                 required
                                                                 style="color: #000000;"
                                                             >
+                                                            @error('job_end_times.0')
+                                                                <span class="field-error">{{ $message }}</span>
+                                                            @enderror
                                                         </div>
                                                     </div>
                                                 </div>
@@ -818,7 +905,7 @@
                                     </div>
 
                                     <!-- 4. Rate Offered -->
-                                    <div class="col-md-12">
+                                    <div class="col-md-12 @error('job_rate') has-error @enderror">
                                         <div class="col-md-4">
                                             <label>Rate Offered (£) <span class="text-danger">*</span></label>
                                         </div>
@@ -829,20 +916,25 @@
                                                 min="1" 
                                                 max="999999" 
                                                 step="0.01" 
-                                                class="form-control margin-bottom" 
+                                                class="form-control margin-bottom @error('job_rate') is-invalid @enderror" 
                                                 @if (isset($job) && $job) 
                                                     value="{{ $job->job_rate }}" 
+                                                @else
+                                                    value="{{ old('job_rate') }}"
                                                 @endif
                                                 placeholder="Enter rate in (£)" 
                                                 required
                                                 style="color: #000000;"
                                             />
+                                            @error('job_rate')
+                                                <span class="field-error">{{ $message }}</span>
+                                            @enderror
                                             <small class="text-muted">This is the rate locums will initially see.</small>
                                         </div>
                                     </div>
 
                                     <!-- 5. Number of Locums Needed -->
-                                    <div class="col-md-12">
+                                    <div class="col-md-12 @error('num_locums_needed') has-error @enderror">
                                         <div class="col-md-4">
                                             <label>Number of Locums Needed <span class="text-danger">*</span></label>
                                         </div>
@@ -852,15 +944,18 @@
                                                 name="num_locums_needed" 
                                                 min="1" 
                                                 max="100" 
-                                                class="form-control margin-bottom" 
+                                                class="form-control margin-bottom @error('num_locums_needed') is-invalid @enderror" 
                                                 @if (isset($job) && $job && $job->num_locums_needed) 
                                                     value="{{ $job->num_locums_needed }}" 
                                                 @else
-                                                    value="1"
+                                                    value="{{ old('num_locums_needed', '1') }}"
                                                 @endif
                                                 required
                                                 style="color: #000000;"
                                             />
+                                            @error('num_locums_needed')
+                                                <span class="field-error">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                     <!-- 6. Preset Rate Increase (Optional) -->

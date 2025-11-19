@@ -337,24 +337,36 @@ class EmployerController extends Controller
 
     public function updateStoreList(Request $request)
     {
-        // dd($request -> all());
-        // $request->validate([
-        //     "store_name_2" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-        //     "store_address_2" => ["required", "max:255"],
-        //     "store_region_2" => ["required", "max:255"],
-        //     "store_zip_2" => ["required", "max:255"],
-        // ]);
         $store_ids = $request->input("store_ids", []);
+        
+        // Build validation rules and messages
+        $rules = array();
+        $messages = array();
+        
+        if (is_array($store_ids) && sizeof($store_ids) > 0) {
+            foreach ($store_ids as $store_id) {
+                $rules["store_name_" . $store_id] = ["required", "string", "max:255"];
+                $rules["store_address_" . $store_id] = ["required", "string", "max:255"];
+                $rules["store_region_" . $store_id] = ["required", "string", "max:255"];
+                $rules["store_zip_" . $store_id] = ["required", "string", "regex:/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i"];
+                
+                $messages["store_zip_" . $store_id . ".required"] = "Postcode is required. Please enter a UK postcode.";
+                $messages["store_zip_" . $store_id . ".regex"] = "Please enter a valid UK postcode format (e.g., SW1A 1AA, M1 1AA, B33 8TH).";
+            }
+        }
+        
+        $request->validate($rules, $messages);
+        
         if (is_array($store_ids) && sizeof($store_ids) > 0) {
             foreach ($store_ids as $store_id) {
                 $start_time = $request->input('job_start_time_' . $store_id);
                 $end_time = $request->input('job_end_time_' . $store_id);
                 $lunch_time = $request->input('job_lunch_time_' . $store_id);
 
-                $store_name = $request->input("store_name_" . $store_id);
-                $store_address = $request->input("store_address_" . $store_id);
-                $store_region = $request->input("store_region_" . $store_id);
-                $store_zip = $request->input("store_zip_" . $store_id);
+                $store_name = trim($request->input("store_name_" . $store_id));
+                $store_address = trim($request->input("store_address_" . $store_id));
+                $store_region = trim($request->input("store_region_" . $store_id));
+                $store_zip = trim(strtoupper($request->input("store_zip_" . $store_id)));
 
                 $store_update_data = array(
                     'store_name'    => $store_name,
@@ -384,33 +396,85 @@ class EmployerController extends Controller
 
     public function saveNewStore(Request $request)
     {
+        // Prevent rapid duplicate submissions using session
+        $sessionKey = 'store_submission_time_' . Auth::user()->id;
+        
+        if (session()->has($sessionKey)) {
+            $lastSubmissionTime = session()->get($sessionKey);
+            // If submitted within last 3 seconds, reject as duplicate
+            if (now()->diffInSeconds($lastSubmissionTime) < 3) {
+                return back()->with("error", "Please wait a moment before submitting again. Store creation is already in progress.");
+            }
+        }
+        
+        // Record submission time
+        session()->put($sessionKey, now());
+        
         $request->validate([
             "total_emp_stores" => ["required", "array", "min:1"]
         ]);
         $total_emp_stores = $request->input("total_emp_stores");
         $rules = array();
+        $messages = array();
         foreach ($total_emp_stores as $store_key) {
             $rules = array_merge($rules, [
                 "emp_store_name_" . $store_key => ["required", "string"],
                 "emp_store_address_" . $store_key => ["required", "string"],
                 "emp_store_region_" . $store_key => ["required", "string"],
-                "emp_store_zip_" . $store_key => ["required", "string"],
+                "emp_store_zip_" . $store_key => ["required", "string", "regex:/^[A-Z]{1,2}[0-9R][0-9A-Z]? [0-9][ABD-HJLNP-UW-Z]{2}$/i"],
                 "job_start_time_" . $store_key => ["required", "array", "size:7"],
                 "job_end_time_" . $store_key => ["required", "array", "size:7"],
                 "job_lunch_time_" . $store_key => ["required", "array", "size:7"]
             ]);
+            
+            // Add custom error messages for each store
+            $messages = array_merge($messages, [
+                "emp_store_zip_" . $store_key . ".required" => "Postcode is required. Please enter a UK postcode.",
+                "emp_store_zip_" . $store_key . ".regex" => "Please enter a valid UK postcode format (e.g., SW1A 1AA, M1 1AA, B33 8TH).",
+            ]);
         }
-        $request->validate($rules);
+        $request->validate($rules, $messages);
         $emp_store_result = array();
         if ($total_emp_stores && is_array($total_emp_stores)) {
             foreach ($total_emp_stores as $key => $store_key) {
                 $emp_start_time = $request->input('job_start_time_' . $store_key);
                 $emp_end_time = $request->input('job_end_time_' . $store_key);
                 $emp_lunch_time = $request->input('job_lunch_time_' . $store_key);
-                $emp_store_name = $request->input('emp_store_name_' . $store_key);
-                $emp_store_address = $request->input('emp_store_address_' . $store_key);
-                $emp_store_region = $request->input('emp_store_region_' . $store_key);
-                $emp_store_zip = $request->input('emp_store_zip_' . $store_key);
+                $emp_store_name = trim($request->input('emp_store_name_' . $store_key));
+                $emp_store_address = trim($request->input('emp_store_address_' . $store_key));
+                $emp_store_region = trim($request->input('emp_store_region_' . $store_key));
+                $emp_store_zip = trim(strtoupper($request->input('emp_store_zip_' . $store_key)));
+
+                // Check for duplicate store (same name and address for same employer)
+                $existingStore = EmployerStoreList::where('employer_id', Auth::user()->id)
+                    ->where('store_name', $emp_store_name)
+                    ->where('store_address', $emp_store_address)
+                    ->where('store_region', $emp_store_region)
+                    ->where('store_zip', $emp_store_zip)
+                    ->first();
+                
+                if ($existingStore) {
+                    // Check if it's a recent duplicate (created within last 5 seconds) - likely from double-click
+                    if ($existingStore->created_at && now()->diffInSeconds($existingStore->created_at) < 5) {
+                        session()->forget($sessionKey);
+                        return back()->with("error", "This store was just created. Please wait a moment before creating it again.");
+                    }
+                    // Otherwise it's an existing duplicate
+                    session()->forget($sessionKey);
+                    return back()->with("error", "A store with the same name and address already exists. Please use a different name or address.");
+                }
+                
+                // Additional check: prevent rapid creation of stores with same name (even if address differs slightly)
+                // This catches cases where user clicks multiple times rapidly
+                $recentStore = EmployerStoreList::where('employer_id', Auth::user()->id)
+                    ->where('store_name', $emp_store_name)
+                    ->where('created_at', '>=', now()->subSeconds(5))
+                    ->first();
+                
+                if ($recentStore) {
+                    session()->forget($sessionKey);
+                    return back()->with("error", "A store with the same name was just created. Please wait a moment or use a different name.");
+                }
 
                 $emp_store_result[] = array(
                     'employer_id' => Auth::user()->id,
@@ -429,6 +493,8 @@ class EmployerController extends Controller
 
         if (sizeof($emp_store_result) > 0) {
             EmployerStoreList::insert($emp_store_result);
+            // Clear submission time after successful creation
+            session()->forget($sessionKey);
         }
         return back()->with("success", "New store added successfully");
     }

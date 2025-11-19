@@ -26,7 +26,7 @@ class LocumlogbookReferralPathwayController extends Controller
             ["title" => "Area", "name" => "area", "placeholder" => "Please enter area name", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Pathway for", "name" => "extended_services", "placeholder" => "ie cataracts referrals", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Pathway Protocol", "name" => "emergency_department", "placeholder" => "ie direct fax to HES", "type" => "text", "validation_rules" => "required|string|max:255"],
-            ["title" => "Contact infor", "name" => "routine_referrals", "type" => "text", "placeholder" => "ie Tel/fax no or email to send referral to", "validation_rules" => "required|string|max:255"],
+            ["title" => "Contact Information", "name" => "routine_referrals", "type" => "text", "placeholder" => "ie Tel/fax no or email to send referral to", "validation_rules" => "required|string|max:255"],
         ];
         $this->model = LocumlogbookReferralPathways::class;
 

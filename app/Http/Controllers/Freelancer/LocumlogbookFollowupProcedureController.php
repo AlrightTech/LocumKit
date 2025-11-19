@@ -22,7 +22,7 @@ class LocumlogbookFollowupProcedureController extends Controller
     public function __construct()
     {
         $this->fields = [
-            ["title" => "Practice Name", "name" => "practice_name", "type" => "text", "validation_rules" => "required|string|max:255|regex:/^[a-zA-Z]+$/"],
+            ["title" => "Practice Name", "name" => "practice_name", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Date", "name" => "date", "type" => "date", "validation_rules" => "required|date"],
             ["title" => "Patient ID", "name" => "patient_id", "type" => "number", "validation_rules" => "nullable|string|max:255"],
             ["title" => "Scenario", "name" => "issue_hand", "type" => "text", "validation_rules" => "required|string|max:255"],
@@ -65,12 +65,6 @@ class LocumlogbookFollowupProcedureController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            "practice_name" => ["required", "max:255", "regex:/^[a-zA-Z]+$/"],
-            "issue_hand" => ["required", "max:255"],
-            "action_required" => ["required", "max:255"],
-            "notes" => ["required", "max:255"],
-        ]);
         $rules = array_map(function ($field) {
             return [$field['name'] => isset($field['validation_rules']) ? $field['validation_rules'] : ''];
         }, $this->fields);
@@ -160,7 +154,7 @@ class LocumlogbookFollowupProcedureController extends Controller
     {
         foreach ($this->fields as $field) {
             if (isset($field['type']) && $field['type'] == 'checkbox') {
-                $record->{$field['name']} = $request->input($field['name']) == 'on' ? true : false;
+                $record->{$field['name']} = $request->has($field['name']) && $request->input($field['name']) === 'on';
             } else {
                 $record->{$field['name']} = $request->input($field['name']);
             }
@@ -168,3 +162,6 @@ class LocumlogbookFollowupProcedureController extends Controller
         $record->save();
     }
 }
+
+
+

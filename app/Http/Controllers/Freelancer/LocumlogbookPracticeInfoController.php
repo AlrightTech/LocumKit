@@ -36,12 +36,12 @@ class LocumlogbookPracticeInfoController extends Controller
             ["title" => "Stereopsis", "placeholder" => "What type of stereopsis test is used", "name" => "stereo_test_type", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Colour Vision",  "placeholder" => "What type of colour vision test is used", "name" => "colour_vision_type", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Handover", "placeholder" => "Describe handover procedure", "name" => "pre_screening_procdure", "type" => "text", "validation_rules" => "required|string|max:255"],
-            ["title" => "Childrens Glasses", "placeholder" => "DO in place or is Optom responsible", "name" => "is_there_do", "type" => "text", "validation_rules" => "required|string|max:255"],
+            ["title" => "Children's Glasses", "placeholder" => "DO in place or is Optom responsible", "name" => "is_there_do", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Trial Frame", "placeholder" => "Yes or No", "name" => "contact_lenses", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Opthal / Ret", "placeholder" => "Yes or No", "name" => "handover_procdure", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Any Patient Leaflets", "placeholder" => "Describe which leaflets are in place", "name" => "any_patient_leaflets", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Referral Procedure", "placeholder" => "Describe referral procedure", "name" => "primary_care_services", "type" => "text", "validation_rules" => "required|string|max:255"],
-            ["title" => "Staff Info", "placeholder" => "Please enter deatils/no. of shop floor staff", "name" => "shop_floor_staff_members", "type" => "text", "validation_rules" => "required|string|max:255"],
+            ["title" => "Staff Info", "placeholder" => "Please enter details/no. of shop floor staff", "name" => "shop_floor_staff_members", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Monitoring Sales / CER", "placeholder" => "Describe how this can be checked", "name" => "no_of_clinics_running", "type" => "text", "validation_rules" => "required|string|max:255"],
         ];
         $this->model = LocumlogbookPracticeInfo::class;

@@ -1,76 +1,29 @@
+# .cpanel.yml
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/murree125/public_html/
-    - export PHP_BIN=/usr/local/bin/php82
-    - |
-      # Detect PHP version if php82 doesn't exist
-      if [ ! -f "$PHP_BIN" ]; then
-        if [ -f "/usr/local/bin/php83" ]; then
-          export PHP_BIN=/usr/local/bin/php83
-        elif [ -f "/usr/local/bin/php84" ]; then
-          export PHP_BIN=/usr/local/bin/php84
-        elif [ -f "/usr/local/bin/php81" ]; then
-          export PHP_BIN=/usr/local/bin/php81
-        else
-          export PHP_BIN=php
-        fi
-      fi
-    - |
-      # Copy files excluding unnecessary directories
-      rsync -av --delete \
-        --exclude='.git' \
-        --exclude='.gitignore' \
-        --exclude='node_modules' \
-        --exclude='vendor' \
-        --exclude='.github' \
-        --exclude='tests' \
-        --exclude='storage/logs/*' \
-        --exclude='storage/framework/cache/*' \
-        --exclude='storage/framework/sessions/*' \
-        --exclude='storage/framework/views/*' \
-        --exclude='bootstrap/cache/*.php' \
-        --exclude='.env.example' \
-        --exclude='phpunit.xml' \
-        --exclude='.phpunit.result.cache' \
-        --exclude='*.md' \
-        --exclude='deploy.sh' \
-        --exclude='nohup.out' \
-        --exclude='error_log' \
-        --exclude='*.log' \
-        ./ $DEPLOYPATH/
-    - |
-      # Install Composer dependencies
-      cd $DEPLOYPATH
-      /usr/local/bin/composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader || \
-      composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-    - |
-      # Install NPM dependencies and build assets (if package.json exists)
-      if [ -f "$DEPLOYPATH/package.json" ]; then
-        cd $DEPLOYPATH
-        npm ci --production || npm install --production
-        npm run production || true
-      fi
-    - |
-      # Set proper permissions
-      chmod -R 755 $DEPLOYPATH/storage
-      chmod -R 755 $DEPLOYPATH/bootstrap/cache
-      chmod -R 755 $DEPLOYPATH/public
-    - |
-      # Clear and cache Laravel
-      cd $DEPLOYPATH
-      $PHP_BIN artisan config:clear || true
-      $PHP_BIN artisan cache:clear || true
-      $PHP_BIN artisan view:clear || true
-      $PHP_BIN artisan route:clear || true
-      $PHP_BIN artisan config:cache || true
-      $PHP_BIN artisan route:cache || true
-      $PHP_BIN artisan view:cache || true
-      $PHP_BIN artisan optimize || true
-    - |
-      # Create storage link if it doesn't exist
-      cd $DEPLOYPATH
-      if [ ! -L "$DEPLOYPATH/public/storage" ]; then
-        $PHP_BIN artisan storage:link || true
-      fi
-    # Uncomment the line below to run migrations automatically
-    # - cd $DEPLOYPATH && $PHP_BIN artisan migrate --force
+    # Set the document root path
+    - export DEPLOYPATH=/locumkit.murreefoods.com
+
+    # Copy all files from repository to document root, excluding .git
+    - /bin/rsync -av --exclude='.git' /home/murree125/repositories/LocumKit/ $DEPLOYPATH/
+
+    # Copy .env separately (make sure it's configured correctly)
+    - /bin/cp -R /home/murree125/repositories/LocumKit/.env $DEPLOYPATH/.env
+
+    # Navigate to document root
+    - cd $DEPLOYPATH
+
+    # Install PHP dependencies without dev packages
+    - composer install --no-dev --optimize-autoloader
+
+    # Run database migrations safely
+    - php artisan migrate --force
+
+    # Clear and cache Laravel configurations
+    - php artisan config:cache
+    - php artisan route:cache
+    - php artisan view:cache
+
+    # Set correct permissions for storage and cache
+    - chmod -R 775 storage bootstrap/cache
+    - chown -R murree125:murree125 storage bootstrap/cache
