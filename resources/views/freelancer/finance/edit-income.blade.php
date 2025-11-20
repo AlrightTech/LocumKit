@@ -68,7 +68,7 @@
                                         <div class="col-md-7">
                                             <div class="input-group date form_date">
                                                 <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-                                                <input class="form-control" type="date" value="{{ $income->job_date }}" name="in_date" required autocomplete="off">
+                                                <input class="form-control" type="text" id="in_date" value="{{ $income->job_date }}" name="in_date" required autocomplete="off">
                                             </div>
                                         </div>
                                     </div>
@@ -130,8 +130,12 @@
                                         <div class="col-md-7">
                                             <div class="input-group date form_date">
                                                 <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-                                                <input class="form-control" type="date" @if ($income->is_bank_transaction_completed) value="{{ $income->bank_transaction_date }}" @endif name="in_bankdate" placeholder="Bank Date" autocomplete="off">
+                                                <input class="form-control" type="text" id="in_bankdate" @if ($income->is_bank_transaction_completed) value="{{ $income->bank_transaction_date }}" @endif name="in_bankdate" placeholder="Bank Date" autocomplete="off">
                                             </div>
+                                            <span class="field-error" id="in_bankdate_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_bankdate')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -153,10 +157,57 @@
 
 @push('scripts')
     <script>
-        $("#income_form").submit(function() {
+        // Validate form before submission
+        function validateEditIncomeForm() {
+            var isValid = true;
+            
+            // Clear all previous error messages
+            $('.field-error').hide().text('');
+            
+            // Validate Bank Date (if bank checkbox is checked)
+            if ($("#in_bank").is(':checked')) {
+                var bankDate = $("#in_bankdate").val();
+                var jobDate = $("#in_date").val();
+                
+                if (!bankDate || bankDate.trim() === '') {
+                    $("#in_bankdate_error").text('Please select a bank date').show();
+                    isValid = false;
+                } else {
+                    var bankDateObj = parseDate(bankDate);
+                    var jobDateObj = parseDate(jobDate);
+                    var today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    // Check if bank date is before job date
+                    if (bankDateObj && jobDateObj && bankDateObj < jobDateObj) {
+                        $("#in_bankdate_error").text('Bank Date cannot be before the Job Date').show();
+                        isValid = false;
+                    }
+                    
+                    // Check if bank date is in the future
+                    if (bankDateObj && bankDateObj > today) {
+                        $("#in_bankdate_error").text('Bank Date cannot be in the future').show();
+                        isValid = false;
+                    }
+                }
+            }
+            
+            return isValid;
+        }
+        
+        $("#income_form").submit(function(e) {
+            // Prevent form submission if validation fails
+            if (!validateEditIncomeForm()) {
+                e.preventDefault();
+                // Scroll to first error
+                $('html, body').animate({
+                    scrollTop: $('.field-error:visible').first().offset().top - 100
+                }, 500);
+                return false;
+            }
+            
             $('#income_submit').hide();
             $('#income_submit_loding').show();
-
         });
         $("#in_jobno").keyup(function() {
             var in_jobno = $("#in_jobno").val();
@@ -183,21 +234,137 @@
                 $('#bank_date').hide(1000);
                 $('#in_bankdate').val('');
                 $("input#in_bankdate").prop('required', false);
+                $("#in_bankdate_error").hide();
+            }
+        });
+        
+        // Helper function to parse date from dd/mm/yy format
+        function parseDate(dateString) {
+            if (!dateString) return null;
+            
+            // Try to parse dd/mm/yy format
+            var parts = dateString.split('/');
+            if (parts.length === 3) {
+                var day = parseInt(parts[0], 10);
+                var month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                var year = parseInt(parts[2], 10);
+                
+                // Handle 2-digit year
+                if (year < 100) {
+                    year += 2000;
+                }
+                
+                return new Date(year, month, day);
+            }
+            
+            // Try to parse YYYY-MM-DD format
+            var isoParts = dateString.split('-');
+            if (isoParts.length === 3) {
+                return new Date(isoParts[0], parseInt(isoParts[1], 10) - 1, isoParts[2]);
+            }
+            
+            return null;
+        }
+        
+        // Validate bank date in real-time
+        $("#in_bankdate").on('change input', function() {
+            $("#in_bankdate_error").hide();
+            
+            // Real-time validation when bank date changes
+            if ($("#in_bank").is(':checked')) {
+                var bankDate = $("#in_bankdate").val();
+                var jobDate = $("#in_date").val();
+                
+                if (bankDate && jobDate) {
+                    var bankDateObj = parseDate(bankDate);
+                    var jobDateObj = parseDate(jobDate);
+                    var today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    // Check if bank date is before job date
+                    if (bankDateObj && jobDateObj && bankDateObj < jobDateObj) {
+                        $("#in_bankdate_error").text('Bank Date cannot be before the Job Date').show();
+                    }
+                    // Check if bank date is in the future
+                    else if (bankDateObj && bankDateObj > today) {
+                        $("#in_bankdate_error").text('Bank Date cannot be in the future').show();
+                    }
+                }
+            }
+        });
+        
+        // Also validate when job date changes
+        $("#in_date").on('change input', function() {
+            // Re-validate bank date if it exists
+            if ($("#in_bank").is(':checked') && $("#in_bankdate").val()) {
+                var bankDate = $("#in_bankdate").val();
+                var jobDate = $("#in_date").val();
+                
+                if (bankDate && jobDate) {
+                    var bankDateObj = parseDate(bankDate);
+                    var jobDateObj = parseDate(jobDate);
+                    
+                    if (bankDateObj && jobDateObj && bankDateObj < jobDateObj) {
+                        $("#in_bankdate_error").text('Bank Date cannot be before the Job Date').show();
+                    } else {
+                        $("#in_bankdate_error").hide();
+                    }
+                }
             }
         });
 
+        // Detect if we're in edit mode (form action contains 'edit-income-update')
+        var isEditMode = $('#income_form').attr('action').indexOf('edit-income-update') !== -1;
+        
+        // Store original form values on page load (for edit mode)
+        var originalFormValues = {};
+        if (isEditMode) {
+            originalFormValues = {
+                rate: $("#in_rate").val(),
+                store: $("#in_store").val(),
+                location: $("#in_location").val(),
+                supplier: $("#in_supplier").val(),
+                date: $("#in_date").val(),
+                category: $("#in_category").val(),
+                emp_id: $("#in_emp_id").val() || ''
+            };
+        }
+
+        // Store initial values to detect if user actually changed them
+        var initialJobNo = $("#in_jobno").val();
+        var initialJobType = $("#in_job_type").val();
+
         $("#in_jobno").blur(function() {
-            get_incomedata();
+            // Only fetch if user actually changed the job number from initial value
+            var currentJobNo = $("#in_jobno").val();
+            if (currentJobNo != '' && currentJobNo != initialJobNo) {
+                get_incomedata();
+            }
         });
 
         $("#in_job_type").change(function() {
-            get_incomedata();
+            // Only fetch if user actually changed the job type from initial value
+            var currentJobType = $("#in_job_type").val();
+            if (currentJobType != '' && currentJobType != initialJobType) {
+                get_incomedata();
+            }
         });
 
         function get_incomedata() {
             var jobno = $("#in_jobno").val();
             var jobtype = $("#in_job_type").val();
             if (jobno != '' && jobtype != '') {
+                // Store current values before AJAX call
+                var currentValues = {
+                    rate: $("#in_rate").val(),
+                    store: $("#in_store").val(),
+                    location: $("#in_location").val(),
+                    supplier: $("#in_supplier").val(),
+                    date: $("#in_date").val(),
+                    category: $("#in_category").val(),
+                    emp_id: $("#in_emp_id").val() || ''
+                };
+
                 $.ajax({
                     url: '/ajax/get-job-info',
                     type: 'POST',
@@ -210,6 +377,7 @@
                     },
                     success: function(result) {
                         if (result && typeof result === "object" && Object.keys(result).length > 0) {
+                            // Valid data returned - update fields
                             var r_data = result;
                             $("#in_rate").val(r_data['rate']);
                             $("#in_store").val(r_data['store_nm']);
@@ -220,15 +388,43 @@
                             $("#in_category").val('1');
                             $("#error_div").html('');
                         } else {
-                            $("#in_rate").val('');
-                            $("#in_store").val('');
-                            $("#in_location").val('');
-                            $("#in_supplier").val('');
-                            $("#in_category").val('');
-                            $("#in_emp_id").val('');
-                            $("#in_date").val('');
+                            // No data returned from AJAX
+                            if (isEditMode) {
+                                // In edit mode: preserve existing values, don't clear them
+                                // Only restore if fields were actually changed by user interaction
+                                // Otherwise, keep current values
+                                $("#in_rate").val(currentValues.rate);
+                                $("#in_store").val(currentValues.store);
+                                $("#in_location").val(currentValues.location);
+                                $("#in_supplier").val(currentValues.supplier);
+                                $("#in_date").val(currentValues.date);
+                                $("#in_category").val(currentValues.category);
+                                $("#in_emp_id").val(currentValues.emp_id);
+                            } else {
+                                // In create mode: clear fields if no data found
+                                $("#in_rate").val('');
+                                $("#in_store").val('');
+                                $("#in_location").val('');
+                                $("#in_supplier").val('');
+                                $("#in_category").val('');
+                                $("#in_emp_id").val('');
+                                $("#in_date").val('');
+                            }
                             $("#error_div").html('');
                         }
+                    },
+                    error: function() {
+                        // AJAX error - preserve existing values, especially in edit mode
+                        if (isEditMode) {
+                            $("#in_rate").val(currentValues.rate);
+                            $("#in_store").val(currentValues.store);
+                            $("#in_location").val(currentValues.location);
+                            $("#in_supplier").val(currentValues.supplier);
+                            $("#in_date").val(currentValues.date);
+                            $("#in_category").val(currentValues.category);
+                            $("#in_emp_id").val(currentValues.emp_id);
+                        }
+                        $("#error_div").html('');
                     }
                 });
             }
@@ -244,14 +440,22 @@
         $(document).ready(function() {
             $('input#in_bankdate').datepicker({
                 maxDate: '0',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
         $(document).ready(function() {
             $('input#in_date').datepicker({
                 maxDate: '0',
                 //minDate: '14/08/2022',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
 

@@ -138,7 +138,7 @@
                                             @csrf
                                             @method('DELETE')
                                         </form>
-                                        <button type="button" class="btn btn-xs btn-danger" onclick="deleteByFormId('del-form-{{ $record->id }}-record')">
+                                        <button type="button" class="btn btn-xs btn-danger delete-btn" data-form-id="del-form-{{ $record->id }}-record" data-record-id="{{ $record->id }}">
                                             <i class="fa fa-fw fa-close"></i>
                                         </button>
                                     </div>
@@ -155,14 +155,76 @@
                 </div>
             </div>
 
+            @if (session('success'))
+                <div class="alert alert-success" style="margin-top: 20px; padding: 15px; background-color: #d4edda; border-color: #c3e6cb; color: #155724; border-radius: 4px;">
+                    <i class="fa fa-check-circle"></i> {{ session('success') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger" style="margin-top: 20px; padding: 15px; background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; border-radius: 4px;">
+                    <i class="fa fa-exclamation-circle"></i> {{ session('error') }}
+                </div>
+            @endif
+
         </div>
     </div>
 @endsection
 
 @push('scripts')
     <script>
-        function deleteByFormId(id) {
-            document.getElementById(id).submit();
-        }
+        (function() {
+            'use strict';
+            var deletingRecords = {}; // Track which records are being deleted
+
+            document.addEventListener('click', function(e) {
+                var deleteBtn = e.target.closest('.delete-btn');
+                if (!deleteBtn) return;
+
+                e.preventDefault();
+                var formId = deleteBtn.getAttribute('data-form-id');
+                var recordId = deleteBtn.getAttribute('data-record-id');
+
+                // Check if this record is already being deleted
+                if (deletingRecords[recordId]) {
+                    console.log('Deletion already in progress for record:', recordId);
+                    return; // Prevent multiple clicks
+                }
+
+                if (!confirm('Are you sure you want to delete this practice?')) {
+                    return;
+                }
+
+                // Mark this record as being deleted
+                deletingRecords[recordId] = true;
+
+                // Disable the button and show loading state
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.6';
+                deleteBtn.style.cursor = 'not-allowed';
+                deleteBtn.style.pointerEvents = 'none';
+
+                // Show spinner
+                var icon = deleteBtn.querySelector('i');
+                if (icon) {
+                    icon.className = 'fa fa-spinner fa-spin';
+                }
+
+                // Submit the form
+                var form = document.getElementById(formId);
+                if (form) {
+                    form.submit();
+                } else {
+                    // If form not found, re-enable button
+                    deleteBtn.disabled = false;
+                    deleteBtn.style.opacity = '1';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.pointerEvents = 'auto';
+                    if (icon) {
+                        icon.className = 'fa fa-fw fa-close';
+                    }
+                    delete deletingRecords[recordId];
+                }
+            });
+        })();
     </script>
 @endpush

@@ -54,6 +54,10 @@
                                                 <option value="2" {{ old('in_job_type') == '2' ? 'selected' : '' }}>Private</option>
                                                 <option value="3" {{ old('in_job_type') == '3' ? 'selected' : '' }}>Other</option>
                                             </select>
+                                            <span class="field-error" id="in_job_type_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_job_type')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -75,8 +79,12 @@
                                         <div class="col-md-7">
                                             <div class="input-group date form_date">
                                                 <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-                                                <input class="form-control" type="" id="date-picker" name="in_date" value="{{ old('in_date') }}" required autocomplete="off">
+                                                <input class="form-control" type="text" id="in_date" name="in_date" value="{{ old('in_date') }}" required autocomplete="off">
                                             </div>
+                                            <span class="field-error" id="in_date_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_date')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -89,6 +97,10 @@
                                                 <input name="in_rate" id="in_rate" type="number" min="1" class="form-control" oninput="checkValue(this)" required placeholder="Please enter amount" value="{{ old('in_rate') }}">
                                             </div>
                                             <span id="rateValidationError" style="color: red;"></span>
+                                            <span class="field-error" id="in_rate_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_rate')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -97,6 +109,10 @@
                                         <div class="col-md-4"><label for="exampleInputPassword1">Store</label><i class="fa fa-asterisk required-stars" aria-hidden="true"></i></div>
                                         <div class="col-md-7">
                                             <input type="text" class="form-control" name="in_store" id="in_store" placeholder="Please enter store name" maxlength="255" value="{{ old('in_store') }}">
+                                            <span class="field-error" id="in_store_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_store')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -110,6 +126,10 @@
                                                 <option value="2" {{ old('in_category') == '2' ? 'selected' : '' }}>Bonus</option>
                                                 <option value="3" {{ old('in_category') == '3' ? 'selected' : '' }}>Other</option>
                                             </select>
+                                            <span class="field-error" id="in_category_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_category')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -118,6 +138,10 @@
                                         <div class="col-md-4"><label for="exampleInputPassword1">Location</label><i class="fa fa-asterisk required-stars" aria-hidden="true"></i></div>
                                         <div class="col-md-7">
                                             <input type="text" class="form-control" name="in_location" id="in_location" placeholder="Please enter location of booking" value="{{ old('in_location') }}">
+                                            <span class="field-error" id="in_location_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_location')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -126,6 +150,10 @@
                                         <div class="col-md-4"><label for="exampleInputPassword1">Supplier</label><i class="fa fa-asterisk required-stars" aria-hidden="true"></i> </div>
                                         <div class="col-md-7">
                                             <input type="text" class="form-control" name="in_supplier" id="in_supplier" placeholder="Please enter employer/supplier name" required value="{{ old('in_supplier') }}">
+                                            <span class="field-error" id="in_supplier_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_supplier')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -147,8 +175,12 @@
                                         <div class="col-md-7">
                                             <div class="input-group date form_date">
                                                 <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-                                                <input class="form-control" type="" id="date-picker-1" name="in_bankdate" placeholder="Bank Date" autocomplete="off" value="{{ old('in_bankdate') }}">
+                                                <input class="form-control" type="text" id="in_bankdate" name="in_bankdate" placeholder="Bank Date" autocomplete="off" value="{{ old('in_bankdate') }}">
                                             </div>
+                                            <span class="field-error" id="in_bankdate_error" style="color: red; font-size: 12px; display: none;"></span>
+                                            @error('in_bankdate')
+                                                <span class="field-error" style="color: red; font-size: 12px;">{{ $message }}</span>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -172,22 +204,142 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script>
-        $(document).ready(function() {
-            $("#date-picker").datepicker({
-                dateFormat: "dd/mm/yy" // Change format to match your placeholder
-            });
-        });
-         $(document).ready(function() {
-            $("#date-picker-1").datepicker({
-                dateFormat: "dd/mm/yy" // Change format to match your placeholder
-            });
-        });
-    </script>
-    <script>
-        $("#income_form").submit(function() {
+        // Client-side validation function
+        function validateIncomeForm() {
+            var isValid = true;
+            var errors = {};
+
+            // Clear all previous error messages
+            $('.field-error').hide().text('');
+
+            // Validate Job Type
+            var jobType = $("#in_job_type").val();
+            if (!jobType || jobType === '') {
+                $("#in_job_type_error").text('Please choose an income type').show();
+                isValid = false;
+            }
+
+            // Validate Date
+            var date = $("#in_date").val();
+            if (!date || date.trim() === '') {
+                $("#in_date_error").text('Please select a date').show();
+                isValid = false;
+            }
+
+            // Validate Income
+            var rate = $("#in_rate").val();
+            if (!rate || rate.trim() === '' || parseFloat(rate) <= 0) {
+                $("#in_rate_error").text('Please enter the income amount').show();
+                isValid = false;
+            }
+
+            // Validate Store
+            var store = $("#in_store").val();
+            if (!store || store.trim() === '') {
+                $("#in_store_error").text('Please enter the store name').show();
+                isValid = false;
+            } else if (!/^[a-zA-Z\s]+$/.test(store)) {
+                $("#in_store_error").text('Store name can only contain letters and spaces').show();
+                isValid = false;
+            }
+
+            // Validate Category
+            var category = $("#in_category").val();
+            if (!category || category === '') {
+                $("#in_category_error").text('Please select a category').show();
+                isValid = false;
+            }
+
+            // Validate Location
+            var location = $("#in_location").val();
+            if (!location || location.trim() === '') {
+                $("#in_location_error").text('Please enter the location').show();
+                isValid = false;
+            }
+
+            // Validate Supplier
+            var supplier = $("#in_supplier").val();
+            if (!supplier || supplier.trim() === '') {
+                $("#in_supplier_error").text('Please enter the supplier name').show();
+                isValid = false;
+            } else if (!/^[a-zA-Z\s]+$/.test(supplier)) {
+                $("#in_supplier_error").text('Supplier name can only contain letters and spaces').show();
+                isValid = false;
+            }
+
+            // Validate Bank Date (if bank checkbox is checked)
+            if ($("#in_bank").is(':checked')) {
+                var bankDate = $("#in_bankdate").val();
+                var jobDate = $("#in_date").val();
+                
+                if (!bankDate || bankDate.trim() === '') {
+                    $("#in_bankdate_error").text('Please select a bank date').show();
+                    isValid = false;
+                } else {
+                    // Parse dates (assuming format dd/mm/yy from datepicker)
+                    var bankDateObj = parseDate(bankDate);
+                    var jobDateObj = parseDate(jobDate);
+                    var today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    // Check if bank date is before job date
+                    if (bankDateObj && jobDateObj && bankDateObj < jobDateObj) {
+                        $("#in_bankdate_error").text('Bank Date cannot be before the Job Date').show();
+                        isValid = false;
+                    }
+                    
+                    // Check if bank date is in the future
+                    if (bankDateObj && bankDateObj > today) {
+                        $("#in_bankdate_error").text('Bank Date cannot be in the future').show();
+                        isValid = false;
+                    }
+                }
+            }
+            
+            // Helper function to parse date from dd/mm/yy format
+            function parseDate(dateString) {
+                if (!dateString) return null;
+                
+                // Try to parse dd/mm/yy format
+                var parts = dateString.split('/');
+                if (parts.length === 3) {
+                    var day = parseInt(parts[0], 10);
+                    var month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                    var year = parseInt(parts[2], 10);
+                    
+                    // Handle 2-digit year
+                    if (year < 100) {
+                        year += 2000;
+                    }
+                    
+                    return new Date(year, month, day);
+                }
+                
+                // Try to parse YYYY-MM-DD format
+                var isoParts = dateString.split('-');
+                if (isoParts.length === 3) {
+                    return new Date(isoParts[0], parseInt(isoParts[1], 10) - 1, isoParts[2]);
+                }
+                
+                return null;
+            }
+
+            return isValid;
+        }
+
+        $("#income_form").submit(function(e) {
+            // Prevent form submission if validation fails
+            if (!validateIncomeForm()) {
+                e.preventDefault();
+                // Scroll to first error
+                $('html, body').animate({
+                    scrollTop: $('.field-error:visible').first().offset().top - 100
+                }, 500);
+                return false;
+            }
+
             $('#income_submit').hide();
             $('#income_submit_loding').show();
-
         });
         $("#in_jobno").keyup(function() {
             var in_jobno = $("#in_jobno").val();
@@ -221,6 +373,76 @@
         });
 
 
+        // Clear error messages when user starts typing/selecting
+        $("#in_job_type").on('change', function() {
+            $("#in_job_type_error").hide();
+        });
+        $("#in_date").on('change input', function() {
+            $("#in_date_error").hide();
+        });
+        $("#in_rate").on('input', function() {
+            $("#in_rate_error").hide();
+        });
+        $("#in_store").on('input', function() {
+            $("#in_store_error").hide();
+        });
+        $("#in_category").on('change', function() {
+            $("#in_category_error").hide();
+        });
+        $("#in_location").on('input', function() {
+            $("#in_location_error").hide();
+        });
+        $("#in_supplier").on('input', function() {
+            $("#in_supplier_error").hide();
+        });
+        $("#in_bankdate").on('change input', function() {
+            $("#in_bankdate_error").hide();
+            
+            // Real-time validation when bank date changes
+            if ($("#in_bank").is(':checked')) {
+                var bankDate = $("#in_bankdate").val();
+                var jobDate = $("#in_date").val();
+                
+                if (bankDate && jobDate) {
+                    var bankDateObj = parseDate(bankDate);
+                    var jobDateObj = parseDate(jobDate);
+                    var today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    // Check if bank date is before job date
+                    if (bankDateObj && jobDateObj && bankDateObj < jobDateObj) {
+                        $("#in_bankdate_error").text('Bank Date cannot be before the Job Date').show();
+                    }
+                    // Check if bank date is in the future
+                    else if (bankDateObj && bankDateObj > today) {
+                        $("#in_bankdate_error").text('Bank Date cannot be in the future').show();
+                    }
+                }
+            }
+        });
+        
+        // Also validate when job date changes
+        $("#in_date").on('change input', function() {
+            $("#in_date_error").hide();
+            
+            // Re-validate bank date if it exists
+            if ($("#in_bank").is(':checked') && $("#in_bankdate").val()) {
+                var bankDate = $("#in_bankdate").val();
+                var jobDate = $("#in_date").val();
+                
+                if (bankDate && jobDate) {
+                    var bankDateObj = parseDate(bankDate);
+                    var jobDateObj = parseDate(jobDate);
+                    
+                    if (bankDateObj && jobDateObj && bankDateObj < jobDateObj) {
+                        $("#in_bankdate_error").text('Bank Date cannot be before the Job Date').show();
+                    } else {
+                        $("#in_bankdate_error").hide();
+                    }
+                }
+            }
+        });
+
         $("#in_bank").click(function() {
             var job_type = $('#in_bank:checked').val();
             if (job_type == '1') {
@@ -230,6 +452,7 @@
                 $('#bank_date').hide(1000);
                 $('#in_bankdate').val('');
                 $("input#in_bankdate").prop('required', false);
+                $("#in_bankdate_error").hide();
             }
         });
 
@@ -289,21 +512,29 @@
 
 
         $(document).ready(function() {
-            $('input#in_bankdate').datepicker({
+            $('input[name="in_date"]').datepicker({
                 maxDate: '0',
-                dateFormat: 'dd/mm/yy'
+                //minDate: '14/08/2022',
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
         $(document).ready(function() {
-            $('input#in_date').datepicker({
+            $('input[name="in_bankdate"]').datepicker({
                 maxDate: '0',
-                //minDate: '14/08/2022',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
 
 
-        $('input#in_date ,input#in_bankdate').keydown(function(e) {
+        $('input[name="in_date"], input[name="in_bankdate"]').keydown(function(e) {
             var key = e.charCode || e.keyCode || 0;
             $goc = $(this);
 

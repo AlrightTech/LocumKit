@@ -39,6 +39,20 @@
                         <div class="cash_man_chart2 wholeborder padb0 wekky-reprt">
                             <form action="" class="add_item_form form-inline desktop clearfix">
                                 @include('components.financial-year-select')
+                                
+                                <div class="col-md-12 pad0 mart10">
+                                    <div class="col-md-3 col-sm-3">
+                                        <label for="week_filter" class="control-label">Filter by Week:</label>
+                                    </div>
+                                    <div class="col-md-4 col-sm-4">
+                                        <select name="week" id="week_filter" class="form-control" onchange="this.form.submit()">
+                                            <option value="">All Weeks (Yearly Summary)</option>
+                                            @foreach($available_weeks ?? [] as $week_key => $week_label)
+                                                <option value="{{ $week_key }}" @selected($week_filter == $week_key)>{{ $week_label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <div class="col-md-6 col-sm-12 col-xs-12 pad0 mart30 desktop income">
                                     <div class="col-md-6 col-sm-6 col-xs-6">
@@ -73,13 +87,13 @@
                                             <thead>
                                                 <tr>
                                                     <th class="col-md-1">&nbsp;</th>
-                                                    <th>S</th>
-                                                    <th>M</th>
-                                                    <th>T</th>
-                                                    <th>W</th>
-                                                    <th>T</th>
-                                                    <th>F</th>
-                                                    <th>S</th>
+                                                    <th>@if(isset($day_dates['Sun']))S<br><small>{{ $day_dates['Sun'] }}</small>@else S @endif</th>
+                                                    <th>@if(isset($day_dates['Mon']))M<br><small>{{ $day_dates['Mon'] }}</small>@else M @endif</th>
+                                                    <th>@if(isset($day_dates['Tue']))T<br><small>{{ $day_dates['Tue'] }}</small>@else T @endif</th>
+                                                    <th>@if(isset($day_dates['Wed']))W<br><small>{{ $day_dates['Wed'] }}</small>@else W @endif</th>
+                                                    <th>@if(isset($day_dates['Thu']))T<br><small>{{ $day_dates['Thu'] }}</small>@else T @endif</th>
+                                                    <th>@if(isset($day_dates['Fri']))F<br><small>{{ $day_dates['Fri'] }}</small>@else F @endif</th>
+                                                    <th>@if(isset($day_dates['Sat']))S<br><small>{{ $day_dates['Sat'] }}</small>@else S @endif</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -129,13 +143,13 @@
                                             <thead>
                                                 <tr>
                                                     <th class="col-md-1">&nbsp;</th>
-                                                    <th>S</th>
-                                                    <th>M</th>
-                                                    <th>T</th>
-                                                    <th>W</th>
-                                                    <th>T</th>
-                                                    <th>F</th>
-                                                    <th>S</th>
+                                                    <th>@if(isset($day_dates['Sun']))S<br><small>{{ $day_dates['Sun'] }}</small>@else S @endif</th>
+                                                    <th>@if(isset($day_dates['Mon']))M<br><small>{{ $day_dates['Mon'] }}</small>@else M @endif</th>
+                                                    <th>@if(isset($day_dates['Tue']))T<br><small>{{ $day_dates['Tue'] }}</small>@else T @endif</th>
+                                                    <th>@if(isset($day_dates['Wed']))W<br><small>{{ $day_dates['Wed'] }}</small>@else W @endif</th>
+                                                    <th>@if(isset($day_dates['Thu']))T<br><small>{{ $day_dates['Thu'] }}</small>@else T @endif</th>
+                                                    <th>@if(isset($day_dates['Fri']))F<br><small>{{ $day_dates['Fri'] }}</small>@else F @endif</th>
+                                                    <th>@if(isset($day_dates['Sat']))S<br><small>{{ $day_dates['Sat'] }}</small>@else S @endif</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -161,6 +175,22 @@
         </div>
     </div>
 @endsection
+
+@push('styles')
+    <style>
+        .income_sum_table th small {
+            display: block;
+            font-size: 11px;
+            font-weight: normal;
+            color: #666;
+            margin-top: 2px;
+        }
+        .income_sum_table th {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+@endpush
 
 @push('scripts')
     <script src="/frontend/locumkit-template/js/Chart.js"></script>

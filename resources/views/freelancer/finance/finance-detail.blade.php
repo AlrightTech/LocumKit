@@ -386,7 +386,30 @@
         var options = {
             animation: true,
             multiTooltipTemplate: site_currency + " <%= value %>.00",
-            scaleLabel: "<%= ' ' + value%>"
+            scaleLabel: "<%= ' ' + value%>",
+            // Enhanced tooltip configuration for better detection on short bars
+            showTooltips: true,
+            tooltipEvents: ["mousemove", "touchstart", "touchmove", "mouseout"],
+            tooltipFillColor: "rgba(0,0,0,0.8)",
+            tooltipFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif",
+            tooltipFontSize: 12,
+            tooltipFontStyle: "normal",
+            tooltipFontColor: "#fff",
+            tooltipTitleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif",
+            tooltipTitleFontSize: 14,
+            tooltipTitleFontStyle: "bold",
+            tooltipTitleFontColor: "#fff",
+            tooltipYPadding: 10,
+            tooltipXPadding: 10,
+            tooltipCaretSize: 8,
+            tooltipCornerRadius: 6,
+            tooltipXOffset: 10,
+            tooltipTemplate: "<%if (label){%><%=label%>: <%}%>" + site_currency + "<%=value%>.00",
+            // Increase detection area for better hover detection on short bars
+            onAnimationComplete: function() {
+                // Ensure tooltips work after animation
+                this.showTooltips = true;
+            }
         };
 
         var income_months_labels = Object.keys(income_by_months);
@@ -406,6 +429,56 @@
         var ctx = document.getElementById("myChart").getContext("2d");
         var myChart = new Chart(ctx).Bar(data, options);
         document.getElementById('myChart-legend').innerHTML = myChart.generateLegend();
+        
+        // Enhanced tooltip handling for short bars
+        // Ensure tooltips work for all bar heights by improving detection
+        var chartCanvas = document.getElementById("myChart");
+        if (chartCanvas && myChart) {
+            // Override the getPointsAtEvent to use a larger detection area for short bars
+            var originalGetPointsAtEvent = myChart.getPointsAtEvent;
+            if (originalGetPointsAtEvent) {
+                myChart.getPointsAtEvent = function(e) {
+                    var points = originalGetPointsAtEvent.call(this, e);
+                    // If no points found, try with a slightly expanded detection area
+                    if (points.length === 0 && this.datasets && this.datasets.length > 0) {
+                        // Get mouse position relative to canvas
+                        var rect = chartCanvas.getBoundingClientRect();
+                        var x = e.clientX - rect.left;
+                        var y = e.clientY - rect.top;
+                        
+                        // Check each bar with expanded detection area (minimum 20px height)
+                        var scale = this.scale;
+                        if (scale && scale.calculateX) {
+                            var barWidth = (this.width - (scale.paddingLeft + scale.paddingRight)) / this.scale.xLabels.length;
+                            var barIndex = Math.floor((x - scale.paddingLeft) / barWidth);
+                            
+                            if (barIndex >= 0 && barIndex < this.scale.xLabels.length) {
+                                var barValue = this.datasets[0].data[barIndex];
+                                var barHeight = scale.calculateY(barValue);
+                                var barTop = scale.endPoint - barHeight;
+                                
+                                // Expand detection area: check if mouse is within bar width and minimum 20px height area
+                                var minDetectionHeight = 20;
+                                var detectionTop = Math.min(barTop, scale.endPoint - minDetectionHeight);
+                                
+                                if (y >= detectionTop && y <= scale.endPoint && 
+                                    x >= (scale.paddingLeft + barIndex * barWidth) && 
+                                    x <= (scale.paddingLeft + (barIndex + 1) * barWidth)) {
+                                    // Return a point object for this bar
+                                    return [{
+                                        value: barValue,
+                                        label: this.scale.xLabels[barIndex],
+                                        x: scale.paddingLeft + barIndex * barWidth + barWidth / 2,
+                                        y: barTop + barHeight / 2
+                                    }];
+                                }
+                            }
+                        }
+                    }
+                    return points;
+                };
+            }
+        }
 
         var expense_labels = Object.keys(expense_chart_data);
         var expense_data_values = Object.values(expense_chart_data);
@@ -424,5 +497,54 @@
         var ctx2 = document.getElementById("myChart2").getContext("2d");
         var myChart2 = new Chart(ctx2).Bar(expense_data, options);
         document.getElementById('myChart2-legend').innerHTML = myChart2.generateLegend();
+        
+        // Enhanced tooltip handling for expense chart short bars
+        var chartCanvas2 = document.getElementById("myChart2");
+        if (chartCanvas2 && myChart2) {
+            // Override the getPointsAtEvent to use a larger detection area for short bars
+            var originalGetPointsAtEvent2 = myChart2.getPointsAtEvent;
+            if (originalGetPointsAtEvent2) {
+                myChart2.getPointsAtEvent = function(e) {
+                    var points = originalGetPointsAtEvent2.call(this, e);
+                    // If no points found, try with a slightly expanded detection area
+                    if (points.length === 0 && this.datasets && this.datasets.length > 0) {
+                        // Get mouse position relative to canvas
+                        var rect = chartCanvas2.getBoundingClientRect();
+                        var x = e.clientX - rect.left;
+                        var y = e.clientY - rect.top;
+                        
+                        // Check each bar with expanded detection area (minimum 20px height)
+                        var scale = this.scale;
+                        if (scale && scale.calculateX) {
+                            var barWidth = (this.width - (scale.paddingLeft + scale.paddingRight)) / this.scale.xLabels.length;
+                            var barIndex = Math.floor((x - scale.paddingLeft) / barWidth);
+                            
+                            if (barIndex >= 0 && barIndex < this.scale.xLabels.length) {
+                                var barValue = this.datasets[0].data[barIndex];
+                                var barHeight = scale.calculateY(barValue);
+                                var barTop = scale.endPoint - barHeight;
+                                
+                                // Expand detection area: check if mouse is within bar width and minimum 20px height area
+                                var minDetectionHeight = 20;
+                                var detectionTop = Math.min(barTop, scale.endPoint - minDetectionHeight);
+                                
+                                if (y >= detectionTop && y <= scale.endPoint && 
+                                    x >= (scale.paddingLeft + barIndex * barWidth) && 
+                                    x <= (scale.paddingLeft + (barIndex + 1) * barWidth)) {
+                                    // Return a point object for this bar
+                                    return [{
+                                        value: barValue,
+                                        label: this.scale.xLabels[barIndex],
+                                        x: scale.paddingLeft + barIndex * barWidth + barWidth / 2,
+                                        y: barTop + barHeight / 2
+                                    }];
+                                }
+                            }
+                        }
+                    }
+                    return points;
+                };
+            }
+        }
     </script>
 @endpush

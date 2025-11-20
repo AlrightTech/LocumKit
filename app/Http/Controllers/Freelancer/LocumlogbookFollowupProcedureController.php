@@ -29,7 +29,7 @@ class LocumlogbookFollowupProcedureController extends Controller
             ["title" => "Action Required", "name" => "action_required", "type" => "text", "validation_rules" => "required|string|max:255"],
             ["title" => "Reminder Needed Date", "name" => "reminder_datetime", "type" => "datetime-local", "validation_rules" => "nullable|date"],
             ["title" => "Notes", "name" => "notes", "type" => "text", "validation_rules" => "required|string|max:255"],
-            ["title" => "Completed", "name" => "is_compeleted", "type" => "checkbox", "validation_rules" => "nullable|in:on"],
+            ["title" => "Completed", "name" => "is_compeleted", "type" => "checkbox", "validation_rules" => "nullable|in:0,1"],
         ];
         $this->model = LocumlogbookFollowupProcedure::class;
 
@@ -65,17 +65,64 @@ class LocumlogbookFollowupProcedureController extends Controller
      */
     public function store(Request $request)
     {
-        $rules = array_map(function ($field) {
-            return [$field['name'] => isset($field['validation_rules']) ? $field['validation_rules'] : ''];
-        }, $this->fields);
+        // Prevent duplicate submissions using session lock
+        $sessionKey = 'followup_procedure_submission_' . Auth::user()->id;
+        if (session()->has($sessionKey)) {
+            $lastSubmissionTime = session()->get($sessionKey);
+            if (now()->diffInSeconds($lastSubmissionTime) < 3) {
+                return back()->with('error', 'Please wait a moment before submitting again. Your previous submission is being processed.');
+            }
+        }
+        session()->put($sessionKey, now());
+
+        $rules = [];
+        foreach ($this->fields as $field) {
+            if (isset($field['validation_rules'])) {
+                // Parse validation rules string into array
+                $ruleString = $field['validation_rules'];
+                // Remove regex validation for practice_name to allow spaces
+                if ($field['name'] === 'practice_name') {
+                    $ruleString = str_replace('|regex:/^[a-zA-Z]+$/', '', $ruleString);
+                    $ruleString = str_replace('regex:/^[a-zA-Z]+$/', '', $ruleString);
+                }
+                // For checkboxes, accept 0, 1, or boolean values instead of "on"
+                if (isset($field['type']) && $field['type'] == 'checkbox') {
+                    $ruleString = 'nullable|in:0,1';
+                }
+                $rules[$field['name']] = explode('|', $ruleString);
+            }
+        }
 
         $request->validate($rules);
+
+        // Prevent duplicate submissions by checking if the same form data was submitted recently
+        $formData = $request->except(['_token']);
+        $formHash = md5(serialize($formData) . $request->user()->id);
+        $lastSubmissionKey = 'last_followup_submission_' . $request->user()->id;
+        
+        if (session()->has($lastSubmissionKey)) {
+            $lastSubmission = session()->get($lastSubmissionKey);
+            // If the same form data was submitted within the last 5 seconds, prevent duplicate
+            if ($lastSubmission['hash'] === $formHash && (time() - $lastSubmission['timestamp']) < 5) {
+                session()->flash('error', 'Duplicate submission detected. Please wait a moment before submitting again.');
+                return redirect()->back()->withInput();
+            }
+        }
+
+        // Store the submission hash and timestamp
+        session()->put($lastSubmissionKey, [
+            'hash' => $formHash,
+            'timestamp' => time()
+        ]);
 
         $record = new $this->model;
         $record->user_id = $request->user()->id;
 
         $this->save_record($request, $record);
         session()->flash('success', 'Record has been successfully added.');
+
+        // Clear submission lock after successful save
+        session()->forget($sessionKey);
 
         return redirect(route("{$this->route}.index"));
     }
@@ -116,9 +163,33 @@ class LocumlogbookFollowupProcedureController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $rules = array_map(function ($field) {
-            return [$field['name'] => isset($field['validation_rules']) ? $field['validation_rules'] : ''];
-        }, $this->fields);
+        // Prevent duplicate submissions using session lock
+        $sessionKey = 'followup_procedure_update_' . Auth::user()->id . '_' . $id;
+        if (session()->has($sessionKey)) {
+            $lastSubmissionTime = session()->get($sessionKey);
+            if (now()->diffInSeconds($lastSubmissionTime) < 3) {
+                return back()->with('error', 'Please wait a moment before submitting again. Your previous submission is being processed.');
+            }
+        }
+        session()->put($sessionKey, now());
+
+        $rules = [];
+        foreach ($this->fields as $field) {
+            if (isset($field['validation_rules'])) {
+                // Parse validation rules string into array
+                $ruleString = $field['validation_rules'];
+                // Remove regex validation for practice_name to allow spaces
+                if ($field['name'] === 'practice_name') {
+                    $ruleString = str_replace('|regex:/^[a-zA-Z]+$/', '', $ruleString);
+                    $ruleString = str_replace('regex:/^[a-zA-Z]+$/', '', $ruleString);
+                }
+                // For checkboxes, accept 0, 1, or boolean values instead of "on"
+                if (isset($field['type']) && $field['type'] == 'checkbox') {
+                    $ruleString = 'nullable|in:0,1';
+                }
+                $rules[$field['name']] = explode('|', $ruleString);
+            }
+        }
 
         $request->validate($rules);
 
@@ -129,6 +200,9 @@ class LocumlogbookFollowupProcedureController extends Controller
 
         $this->save_record($request, $record);
         session()->flash('success', 'Record has been Updated.');
+
+        // Clear submission lock after successful save
+        session()->forget($sessionKey);
 
         return redirect(route("{$this->route}.index"));
     }
@@ -142,9 +216,13 @@ class LocumlogbookFollowupProcedureController extends Controller
     public function destroy($id)
     {
         $record = $this->model::where("user_id", Auth::user()->id)->where("id", $id)->first();
+        
+        // If record doesn't exist (already deleted), return success to prevent 404 errors
+        // This handles the case where multiple delete requests were sent
         if (!$record) {
-            return abort(404);
+            return redirect(route("{$this->route}.index"))->with("success", "Record has already been deleted.");
         }
+        
         $record->delete();
 
         return redirect(route("{$this->route}.index"))->with("success", "Data is Deleted Successfully.");
@@ -154,7 +232,10 @@ class LocumlogbookFollowupProcedureController extends Controller
     {
         foreach ($this->fields as $field) {
             if (isset($field['type']) && $field['type'] == 'checkbox') {
-                $record->{$field['name']} = $request->has($field['name']) && $request->input($field['name']) === 'on';
+                // Standard Laravel checkbox handling: hidden input with value="0" and checkbox with value="1"
+                // When checkbox is checked, it sends value="1", when unchecked, only hidden field with value="0" is sent
+                $value = $request->input($field['name'], '0');
+                $record->{$field['name']} = ($value === '1' || $value === 1 || $value === true);
             } else {
                 $record->{$field['name']} = $request->input($field['name']);
             }
@@ -162,6 +243,3 @@ class LocumlogbookFollowupProcedureController extends Controller
         $record->save();
     }
 }
-
-
-

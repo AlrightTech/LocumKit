@@ -822,6 +822,9 @@ class FreelancerController extends Controller
         $income_filter = $request->has("income-filter") ? $request->input("income-filter") : 'month';
         $expense_filter = $request->has("expense-filter") ? $request->input("expense-filter") : 'month';
 
+        // Get all available financial years from database
+        $available_years = $this->getAvailableFinancialYears(Auth::user()->id, $finance_year_start_month);
+
         $year_start = get_financial_year_range($finance_year_start_month, $filter_year)["year_start"];
         $year_end = get_financial_year_range($finance_year_start_month, $filter_year)["year_end"];
 
@@ -836,7 +839,86 @@ class FreelancerController extends Controller
         $total_expense = $finance_helper->get_user_total_expense($filter_year, $finance_year_start_month);
         $user_total_tax = $finance_helper->user_tax_calculation($finance_year_start_month, $total_income - $total_expense, $user_finance_type, $filter_year);
 
-        return view("freelancer.finance.finance-detail", compact('finance_year_start_month', 'total_income', 'total_expense', 'user_total_tax', 'income_records', 'income_chart_data', 'expense_records', 'expense_chart_data', 'filter_year', 'income_filter', 'expense_filter'));
+        return view("freelancer.finance.finance-detail", compact('finance_year_start_month', 'total_income', 'total_expense', 'user_total_tax', 'income_records', 'income_chart_data', 'expense_records', 'expense_chart_data', 'filter_year', 'income_filter', 'expense_filter', 'available_years'));
+    }
+
+    /**
+     * Get all available financial years from database based on income and expense records
+     *
+     * @param int $user_id
+     * @param int $finance_year_start_month
+     * @return array
+     */
+    private function getAvailableFinancialYears(int $user_id, int $finance_year_start_month): array
+    {
+        // Get all income records with dates (more reliable than selectRaw)
+        $income_records = FinanceIncome::query()
+            ->where("freelancer_id", $user_id)
+            ->whereNotNull("job_date")
+            ->select('job_date')
+            ->get();
+
+        // Get all expense records with dates
+        $expense_records = FinanceExpense::query()
+            ->where("freelancer_id", $user_id)
+            ->whereNotNull("job_date")
+            ->select('job_date')
+            ->get();
+
+        // Merge all records
+        $all_records = $income_records->merge($expense_records);
+
+        // Convert dates to financial years and get unique financial years
+        $financial_years = [];
+        foreach ($all_records as $record) {
+            if ($record->job_date) {
+                try {
+                    $date_obj = Carbon::parse($record->job_date);
+                    $year = (int) $date_obj->format('Y');
+                    $month = (int) $date_obj->format('m');
+                    
+                    // Determine which financial year this date belongs to
+                    // If the date's month is before the financial year start month, 
+                    // it belongs to the previous calendar year's financial year
+                    if ($finance_year_start_month == 1) {
+                        $financial_year = $year;
+                    } elseif ($month >= $finance_year_start_month) {
+                        $financial_year = $year;
+                    } else {
+                        $financial_year = $year - 1;
+                    }
+                    
+                    if (!in_array($financial_year, $financial_years)) {
+                        $financial_years[] = $financial_year;
+                    }
+                } catch (\Exception $e) {
+                    // Skip invalid dates
+                    continue;
+                }
+            }
+        }
+
+        // Add current financial year if not already present
+        $current_financial_year = get_financial_current_year($finance_year_start_month);
+        if (!in_array($current_financial_year, $financial_years)) {
+            $financial_years[] = $current_financial_year;
+        }
+
+        // Always ensure we have a reasonable historical range (last 10 years minimum)
+        // This ensures users can always see and select previous years, even if no records exist
+        $historical_start = $current_financial_year - 10;
+        
+        // Add any missing years in the historical range
+        for ($y = $historical_start; $y <= $current_financial_year; $y++) {
+            if (!in_array($y, $financial_years)) {
+                $financial_years[] = $y;
+            }
+        }
+        
+        // Sort descending (newest first)
+        rsort($financial_years);
+
+        return $financial_years;
     }
 
     public function showAddIncome()
@@ -854,10 +936,39 @@ class FreelancerController extends Controller
 
     public function saveIncome(Request $request)
     {
+        // Get bank checkbox value first to conditionally validate bank date
+        $in_bank = $request->input("in_bank");
+        $bankDateRequired = $in_bank == "1" ? "required" : "nullable";
+        
         $request->validate([
+            "in_job_type" => ["required"],
+            "in_date" => ["required", "date"],
+            "in_rate" => ["required", "numeric", "min:0.01"],
             "in_store" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
+            "in_category" => ["required"],
             "in_location" => ["required", "max:255"],
             "in_supplier" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
+            "in_bankdate" => [$bankDateRequired, "date", "before_or_equal:today", "after_or_equal:in_date"],
+        ], [
+            "in_job_type.required" => "Please choose an income type",
+            "in_date.required" => "Please select a date",
+            "in_date.date" => "Please enter a valid date",
+            "in_rate.required" => "Please enter the income amount",
+            "in_rate.numeric" => "Income amount must be a number",
+            "in_rate.min" => "Income amount must be greater than zero",
+            "in_store.required" => "Please enter the store name",
+            "in_store.max" => "Store name cannot exceed 255 characters",
+            "in_store.regex" => "Store name can only contain letters and spaces",
+            "in_category.required" => "Please select a category",
+            "in_location.required" => "Please enter the location",
+            "in_location.max" => "Location cannot exceed 255 characters",
+            "in_supplier.required" => "Please enter the supplier name",
+            "in_supplier.max" => "Supplier name cannot exceed 255 characters",
+            "in_supplier.regex" => "Supplier name can only contain letters and spaces",
+            "in_bankdate.required" => "Please select a bank date",
+            "in_bankdate.date" => "Please enter a valid bank date",
+            "in_bankdate.before_or_equal" => "Bank Date cannot be in the future",
+            "in_bankdate.after_or_equal" => "Bank Date cannot be before the Job Date",
         ]);
         
        
@@ -870,7 +981,6 @@ class FreelancerController extends Controller
         $in_income_type = $request->input("in_category");
         $in_location = $request->input("in_location");
         $in_supplier = $request->input("in_supplier");
-        $in_bank = $request->input("in_bank");
         $in_bankdate = $request->input("in_bankdate");
         $income_submit = $request->input("income_submit");
 
@@ -910,6 +1020,42 @@ class FreelancerController extends Controller
         if ($income == 0) {
             return abort(404);
         }
+        
+        // Get bank checkbox value first to conditionally validate bank date
+        $in_bank = $request->input("in_bank");
+        $bankDateRequired = $in_bank == "1" ? "required" : "nullable";
+        
+        $request->validate([
+            "in_job_type" => ["required"],
+            "in_date" => ["required", "date"],
+            "in_rate" => ["required", "numeric", "min:0.01"],
+            "in_store" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
+            "in_category" => ["required"],
+            "in_location" => ["required", "max:255"],
+            "in_supplier" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
+            "in_bankdate" => [$bankDateRequired, "date", "before_or_equal:today", "after_or_equal:in_date"],
+        ], [
+            "in_job_type.required" => "Please choose an income type",
+            "in_date.required" => "Please select a date",
+            "in_date.date" => "Please enter a valid date",
+            "in_rate.required" => "Please enter the income amount",
+            "in_rate.numeric" => "Income amount must be a number",
+            "in_rate.min" => "Income amount must be greater than zero",
+            "in_store.required" => "Please enter the store name",
+            "in_store.max" => "Store name cannot exceed 255 characters",
+            "in_store.regex" => "Store name can only contain letters and spaces",
+            "in_category.required" => "Please select a category",
+            "in_location.required" => "Please enter the location",
+            "in_location.max" => "Location cannot exceed 255 characters",
+            "in_supplier.required" => "Please enter the supplier name",
+            "in_supplier.max" => "Supplier name cannot exceed 255 characters",
+            "in_supplier.regex" => "Supplier name can only contain letters and spaces",
+            "in_bankdate.required" => "Please select a bank date",
+            "in_bankdate.date" => "Please enter a valid bank date",
+            "in_bankdate.before_or_equal" => "Bank Date cannot be in the future",
+            "in_bankdate.after_or_equal" => "Bank Date cannot be before the Job Date",
+        ]);
+        
         $in_emp_id = $request->input("in_emp_id");
         $in_job_type = $request->input("in_job_type");
         $in_jobno = $request->input("in_jobno");
@@ -919,7 +1065,6 @@ class FreelancerController extends Controller
         $in_income_type = $request->input("in_category");
         $in_location = $request->input("in_location");
         $in_supplier = $request->input("in_supplier");
-        $in_bank = $request->input("in_bank");
         $in_bankdate = $request->input("in_bankdate");
 
         $is_record_exists = FinanceIncome::where("id", "!=", $id)
@@ -1380,22 +1525,110 @@ $expense->job_date = \Carbon\Carbon::createFromFormat('d/m/Y', $ex_job_date)->fo
         $user_finance_type = $finance_helper->get_user_finance_type();
 
         $filter_year = $request->has("year") ? $request->input("year") : date('Y');
-        $filter = $request->has("filter") ? $request->input("filter") : 'month';
+        $filter = $request->has("filter") ? $request->input("filter") : 'year';
+        
+        // Get week filter (format: YYYY-WW, e.g., 2025-01 for first week of 2025)
+        $week_filter = $request->has("week") ? $request->input("week") : null;
 
         $year_start = get_financial_year_range($finance_year_start_month, $filter_year)["year_start"];
         $year_end = get_financial_year_range($finance_year_start_month, $filter_year)["year_end"];
 
         $income_by_day_data = get_abbrevated_days_list();
         $job_count_by_day_data = get_abbrevated_days_list();
+        $day_dates = []; // Store dates for each weekday
 
-        $income_records = FinanceIncome::query()->select(DB::raw("SUM(job_rate) as total_amount"), DB::raw("DATE_FORMAT(job_date, '%a') as day"), DB::raw("COUNT(id) as job_count"))->where("freelancer_id", Auth::user()->id)->whereBetween("job_date", [$year_start, $year_end]);
-        $income_records = $income_records->groupBy("day")->get();
-        foreach ($income_records as $record) {
-            $income_by_day_data[$record->day] = $record->total_amount;
-            $job_count_by_day_data[$record->day] = $record->job_count;
+        // If week filter is provided, filter by specific week
+        if ($week_filter && preg_match('/^(\d{4})-(\d{1,2})$/', $week_filter, $matches)) {
+            $year = (int)$matches[1];
+            $week = (int)$matches[2];
+            try {
+                $week_start = Carbon::now()->setISODate($year, $week, 1); // Monday of the week
+                $week_end = $week_start->copy()->endOfWeek(); // Sunday of the week
+                
+                // Ensure week is within financial year range
+                if ($week_start->between($year_start, $year_end) || $week_end->between($year_start, $year_end) || 
+                    ($week_start->lt($year_start) && $week_end->gt($year_end))) {
+                    $income_records = FinanceIncome::query()
+                        ->select(DB::raw("SUM(job_rate) as total_amount"), 
+                                 DB::raw("DATE_FORMAT(job_date, '%a') as day"), 
+                                 DB::raw("COUNT(id) as job_count"),
+                                 DB::raw("DATE_FORMAT(job_date, '%d %b') as date_display"))
+                        ->where("freelancer_id", Auth::user()->id)
+                        ->whereBetween("job_date", [$week_start, $week_end])
+                        ->groupBy("day", "date_display")
+                        ->get();
+                    
+                    foreach ($income_records as $record) {
+                        $day_key = $record->day;
+                        $income_by_day_data[$day_key] = ($income_by_day_data[$day_key] ?? 0) + $record->total_amount;
+                        $job_count_by_day_data[$day_key] = ($job_count_by_day_data[$day_key] ?? 0) + $record->job_count;
+                        // Store the date for this weekday (use the first date found for each day)
+                        if (!isset($day_dates[$day_key])) {
+                            $day_dates[$day_key] = $record->date_display;
+                        }
+                    }
+                    
+                    // Fill in dates for all days of the week, even if no records exist
+                    $current_date = $week_start->copy();
+                    while ($current_date <= $week_end) {
+                        $day_key = $current_date->format('D');
+                        if (!isset($day_dates[$day_key])) {
+                            $day_dates[$day_key] = $current_date->format('d M');
+                        }
+                        $current_date->addDay();
+                    }
+                }
+            } catch (\Exception $e) {
+                // If week calculation fails, fall back to yearly summary
+            }
+        } else {
+            // Default: aggregate across entire financial year
+            $income_records = FinanceIncome::query()
+                ->select(DB::raw("SUM(job_rate) as total_amount"), 
+                         DB::raw("DATE_FORMAT(job_date, '%a') as day"), 
+                         DB::raw("COUNT(id) as job_count"))
+                ->where("freelancer_id", Auth::user()->id)
+                ->whereBetween("job_date", [$year_start, $year_end])
+                ->groupBy("day")
+                ->get();
+            
+            foreach ($income_records as $record) {
+                $income_by_day_data[$record->day] = $record->total_amount;
+                $job_count_by_day_data[$record->day] = $record->job_count;
+            }
         }
 
-        return view('freelancer.finance.weekly-report', compact('finance_year_start_month', 'job_count_by_day_data', 'income_by_day_data', 'filter_year'));
+        // Get available weeks for the financial year
+        $available_weeks = [];
+        $current_week_start = $year_start->copy()->startOfWeek();
+        $current_week_end = $year_end->copy();
+        
+        // Also get weeks that have income records
+        $weeks_with_data = FinanceIncome::query()
+            ->select(DB::raw("YEARWEEK(job_date, 1) as week_number"),
+                     DB::raw("MIN(job_date) as week_start_date"))
+            ->where("freelancer_id", Auth::user()->id)
+            ->whereBetween("job_date", [$year_start, $year_end])
+            ->groupBy("week_number")
+            ->orderBy("week_number", "desc")
+            ->get();
+        
+        foreach ($weeks_with_data as $week_data) {
+            try {
+                $week_date = Carbon::parse($week_data->week_start_date);
+                $week_start = $week_date->copy()->startOfWeek();
+                $week_number = $week_start->format('o-W'); // ISO week format (year-week)
+                $week_label = $week_start->format('d M') . ' - ' . $week_start->copy()->endOfWeek()->format('d M Y');
+                $available_weeks[$week_number] = $week_label;
+            } catch (\Exception $e) {
+                // Skip invalid weeks
+            }
+        }
+        
+        // Sort by week number descending (newest first)
+        krsort($available_weeks);
+
+        return view('freelancer.finance.weekly-report', compact('finance_year_start_month', 'job_count_by_day_data', 'income_by_day_data', 'filter_year', 'filter', 'week_filter', 'day_dates', 'available_weeks'));
     }
 
     public function feedbackDetails()

@@ -68,7 +68,7 @@
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
-                                                <input type="" id="date-picker" name="ex_job_date" class="form-control" required autocomplete="off">
+                                                <input type="text" id="date-picker" name="ex_job_date" class="form-control" required autocomplete="off">
                                             </div>
                                         </div>
                                     </div>
@@ -134,7 +134,7 @@
                                         <div class="col-md-7">
                                             <div class="input-group date form_date" autocomplete="off">
                                                 <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-                                                <input type="" id="date-picker-1" class="form-control" name="ex_bank_date" autocomplete="off">
+                                                <input type="text" id="date-picker-1" class="form-control" name="ex_bank_date" autocomplete="off">
                                             </div>
                                         </div>
                                     </div>
@@ -162,12 +162,20 @@
     <script>
         $(document).ready(function() {
             $("#date-picker").datepicker({
-                dateFormat: "dd/mm/yy" // Change format to match your placeholder
+                dateFormat: "dd/mm/yy",
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
         $(document).ready(function() {
             $("#date-picker-1").datepicker({
-                dateFormat: "dd/mm/yy" // Change format to match your placeholder
+                dateFormat: "dd/mm/yy",
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
     </script>
@@ -183,11 +191,19 @@
         $(document).ready(function() {
             $('input#ex_bank_date').datepicker({
                 maxDate: '0',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
             $('input#ex_job_date').datepicker({
                 maxDate: '0',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
 

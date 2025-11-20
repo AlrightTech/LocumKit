@@ -78,9 +78,9 @@
 
                 <div class="col-md-12">
                     <div class="form-group">
-                        <div class="col-md-4"><label for="your_address">Your address</label></div>
+                        <div class="col-md-4"><label for="your_address">Your address <i class="fa fa-asterisk required-stars" aria-hidden="true"></i></label></div>
                         <div class="col-md-7">
-                            <textarea class="form-control" name="your_address" id="your_address" required readonly>{{ $user_invoice_data['address'] }}</textarea>
+                            <textarea class="form-control" name="your_address" id="your_address" required @if(!empty($user_invoice_data['address'])) readonly @endif placeholder="Enter your address">{{ $user_invoice_data['address'] ?? old('your_address') }}</textarea>
                         </div>
                     </div>
                     @error('your_address')
@@ -90,9 +90,9 @@
 
                 <div class="col-md-12">
                     <div class="form-group">
-                        <div class="col-md-4"><label for="your_contact">Your contact No.</label></div>
+                        <div class="col-md-4"><label for="your_contact">Your contact No. <i class="fa fa-asterisk required-stars" aria-hidden="true"></i></label></div>
                         <div class="col-md-7">
-                            <input type="text" class="form-control" name="your_contact" id="your_contact" placeholder="Contact Number" value="{{ $user_invoice_data['contact_no'] }}" required readonly />
+                            <input type="text" class="form-control" name="your_contact" id="your_contact" placeholder="Contact Number" value="{{ $user_invoice_data['contact_no'] ?? old('your_contact') }}" required @if(!empty($user_invoice_data['contact_no'])) readonly @endif />
                         </div>
                     </div>
                     @error('your_contact')

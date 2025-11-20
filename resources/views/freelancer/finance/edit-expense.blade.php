@@ -1,5 +1,24 @@
 @extends('layouts.user_profile_app')
 
+@push('styles')
+    <style>
+        .receipt-download-link {
+            text-decoration: none !important;
+        }
+        .receipt-download-link:hover {
+            background-color: #0056b3 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .receipt-download-link:active {
+            transform: translateY(0);
+        }
+        .receipt-download-link strong {
+            text-decoration: underline;
+        }
+    </style>
+@endpush
+
 @section('content')
     <section id="breadcrum" class="breadcrum">
         <div class="breadcrum-sitemap">
@@ -118,7 +137,31 @@
                                         </div>
                                     </div>
                                     @if ($expense->receipt)
-                                        <div> <a href="{{ $expense->receipt }}" download> Click here </a> to download uploaded receipt </div>
+                                        <div class="col-md-7" style="margin-top: 10px;">
+                                            @php
+                                                // Extract filename from path
+                                                $receiptPath = $expense->receipt;
+                                                $filename = basename($receiptPath);
+                                                $fullPath = public_path($receiptPath);
+                                                $fileExists = file_exists($fullPath);
+                                                
+                                                // Generate proper download URL using route
+                                                if ($fileExists) {
+                                                    $receiptUrl = route('media.receipt', ['filename' => $filename]);
+                                                } else {
+                                                    $receiptUrl = asset($receiptPath); // Fallback
+                                                }
+                                            @endphp
+                                            @if ($fileExists)
+                                                <a href="{{ $receiptUrl }}" download class="btn btn-sm btn-info receipt-download-link" style="text-decoration: none; color: #fff; padding: 8px 15px; border-radius: 4px; display: inline-block; font-weight: normal; transition: all 0.3s ease; cursor: pointer;">
+                                                    <i class="fa fa-download" style="margin-right: 5px;"></i> <strong style="text-decoration: underline;">Click here</strong> to download uploaded receipt
+                                                </a>
+                                            @else
+                                                <div class="alert alert-warning" style="padding: 8px 12px; margin: 0; font-size: 12px; border-radius: 4px;">
+                                                    <i class="fa fa-exclamation-triangle"></i> The file is missing or was not uploaded correctly.
+                                                </div>
+                                            @endif
+                                        </div>
                                     @endif
                                 </div>
 
@@ -175,11 +218,19 @@
         $(document).ready(function() {
             $('input#ex_bank_date').datepicker({
                 maxDate: '0',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
             $('input#ex_job_date').datepicker({
                 maxDate: '0',
-                dateFormat: 'dd/mm/yy'
+                dateFormat: 'dd/mm/yy',
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                yearRange: '-100:+0'
             });
         });
 

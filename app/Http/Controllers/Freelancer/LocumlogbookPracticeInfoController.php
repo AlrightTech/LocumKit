@@ -78,36 +78,39 @@ class LocumlogbookPracticeInfoController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            "practice_name" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "appointment_time_slots" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "record_keeping" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "trial_set" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "phoropter" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "test_chat_type" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "visualfield_machinetype" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "funds_camera" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "oct" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "slit_lamp_type" => ["required", "max:255", 
-            //"regex:/^[a-zA-Z\s]+$/"
-            ],
-            "reading_chart" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "stereo_test_type" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "colour_vision_type" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "pre_screening_procdure" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "is_there_do" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "contact_lenses" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "handover_procdure" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "any_patient_leaflets" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "primary_care_services" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "shop_floor_staff_members" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-            "no_of_clinics_running" => ["required", "max:255", "regex:/^[a-zA-Z\s]+$/"],
-        ]);
-        $rules = array_map(function ($field) {
-            return [$field['name'] => isset($field['validation_rules']) ? $field['validation_rules'] : ''];
-        }, $this->fields);
+        // Build validation rules and custom messages
+        $rules = [];
+        $messages = [];
+        
+        foreach ($this->fields as $field) {
+            if (isset($field['validation_rules'])) {
+                $fieldName = $field['name'];
+                $fieldTitle = $field['title'];
+                
+                // Parse validation rules
+                $ruleString = $field['validation_rules'];
+                // Remove regex validation to allow more flexible input
+                $ruleString = preg_replace('/\|?regex:[^|]+/', '', $ruleString);
+                $ruleString = trim($ruleString, '|');
+                
+                $rules[$fieldName] = explode('|', $ruleString);
+                
+                // Add custom error messages
+                if (str_contains($field['validation_rules'], 'required')) {
+                    $messages[$fieldName . '.required'] = "Please enter {$fieldTitle}";
+                }
+                if (str_contains($field['validation_rules'], 'max:')) {
+                    preg_match('/max:(\d+)/', $field['validation_rules'], $matches);
+                    $maxLength = $matches[1] ?? 255;
+                    $messages[$fieldName . '.max'] = "{$fieldTitle} cannot exceed {$maxLength} characters";
+                }
+                if (str_contains($field['validation_rules'], 'string')) {
+                    $messages[$fieldName . '.string'] = "{$fieldTitle} must be a valid text";
+                }
+            }
+        }
 
-        $request->validate($rules);
+        $request->validate($rules, $messages);
 
         $record = new $this->model;
         $record->user_id = $request->user()->id;
@@ -153,11 +156,39 @@ class LocumlogbookPracticeInfoController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $rules = array_map(function ($field) {
-            return [$field['name'] => isset($field['validation_rules']) ? $field['validation_rules'] : ''];
-        }, $this->fields);
+        // Build validation rules and custom messages
+        $rules = [];
+        $messages = [];
+        
+        foreach ($this->fields as $field) {
+            if (isset($field['validation_rules'])) {
+                $fieldName = $field['name'];
+                $fieldTitle = $field['title'];
+                
+                // Parse validation rules
+                $ruleString = $field['validation_rules'];
+                // Remove regex validation to allow more flexible input
+                $ruleString = preg_replace('/\|?regex:[^|]+/', '', $ruleString);
+                $ruleString = trim($ruleString, '|');
+                
+                $rules[$fieldName] = explode('|', $ruleString);
+                
+                // Add custom error messages
+                if (str_contains($field['validation_rules'], 'required')) {
+                    $messages[$fieldName . '.required'] = "Please enter {$fieldTitle}";
+                }
+                if (str_contains($field['validation_rules'], 'max:')) {
+                    preg_match('/max:(\d+)/', $field['validation_rules'], $matches);
+                    $maxLength = $matches[1] ?? 255;
+                    $messages[$fieldName . '.max'] = "{$fieldTitle} cannot exceed {$maxLength} characters";
+                }
+                if (str_contains($field['validation_rules'], 'string')) {
+                    $messages[$fieldName . '.string'] = "{$fieldTitle} must be a valid text";
+                }
+            }
+        }
 
-        $request->validate($rules);
+        $request->validate($rules, $messages);
 
         $record = $this->model::where("user_id", Auth::user()->id)->where("id", $id)->first();
         if (!$record) {
@@ -179,11 +210,12 @@ class LocumlogbookPracticeInfoController extends Controller
     {
         $record = $this->model::where("user_id", Auth::user()->id)->where("id", $id)->first();
         if (!$record) {
-            return abort(404);
+            // Record already deleted or doesn't exist - return success to prevent 404 errors
+            return redirect(route("{$this->route}.index"))->with("success", "Practice deleted successfully.");
         }
         $record->delete();
 
-        return redirect(route("{$this->route}.index"))->with("success", "Deleted Successfully");
+        return redirect(route("{$this->route}.index"))->with("success", "Practice deleted successfully.");
     }
 
     private function save_record(Request $request, Model &$record)

@@ -119,7 +119,7 @@
                                       
                                             @if ((isset($field['index_hidden']) && $field['index_hidden']) == false)
                                                 @if (isset($field['type']) && $field['type'] == 'checkbox')
-                                                    <td>{{ $record->{$field['name']} == 1 ? 'Yes' : 'No' }}</td>
+                                                    <td>{{ $record->{$field['name']} == 1 || $record->{$field['name']} === true || $record->{$field['name']} == '1' ? 'YES' : 'NO' }}</td>
                                                 @else
                                                    @if($field['type']=='date')
                                                       <td> {{\Carbon\Carbon::parse($record->{$field['name']})->format('d/m/y')}}</td>
@@ -143,7 +143,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                             </form>
-                                            <button type="button" class="btn btn-xs btn-danger" onclick="deleteByFormId('del-form-{{ $record->id }}-record')">
+                                            <button type="button" class="btn btn-xs btn-danger delete-btn" data-form-id="del-form-{{ $record->id }}-record" data-record-id="{{ $record->id }}">
                                                 <i class="fa fa-fw fa-close"></i>
                                             </button>
                                         </td>
@@ -171,8 +171,74 @@
                         $('#questionaire_list1').DataTable();
                     }); */
 
-        function deleteByFormId(id) {
-            document.getElementById(id).submit();
-        }
+        (function() {
+            'use strict';
+            var deletingRecords = {}; // Track which records are being deleted
+
+            // Handle delete button clicks
+            document.addEventListener('click', function(e) {
+                var deleteBtn = e.target.closest('.delete-btn');
+                if (!deleteBtn) return;
+
+                var formId = deleteBtn.getAttribute('data-form-id');
+                var recordId = deleteBtn.getAttribute('data-record-id');
+
+                // Check if this record is already being deleted
+                if (deletingRecords[recordId]) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Confirm deletion
+                if (!confirm('Are you sure you want to delete this record?')) {
+                    return false;
+                }
+
+                // Mark this record as being deleted
+                deletingRecords[recordId] = true;
+
+                // Disable the button immediately
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.5';
+                deleteBtn.style.cursor = 'not-allowed';
+                deleteBtn.style.pointerEvents = 'none';
+
+                // Change icon to show processing
+                var icon = deleteBtn.querySelector('i');
+                if (icon) {
+                    icon.className = 'fa fa-fw fa-spinner fa-spin';
+                }
+
+                // Submit the form
+                var form = document.getElementById(formId);
+                if (form) {
+                    form.submit();
+                } else {
+                    // If form not found, re-enable button
+                    deletingRecords[recordId] = false;
+                    deleteBtn.disabled = false;
+                    deleteBtn.style.opacity = '1';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.pointerEvents = 'auto';
+                    if (icon) {
+                        icon.className = 'fa fa-fw fa-close';
+                    }
+                }
+            });
+
+            // Legacy function for backward compatibility (if used elsewhere)
+            function deleteByFormId(id) {
+                var form = document.getElementById(id);
+                if (form) {
+                    var recordId = form.getAttribute('data-record-id') || id;
+                    if (deletingRecords[recordId]) {
+                        return false; // Already deleting
+                    }
+                    deletingRecords[recordId] = true;
+                    form.submit();
+                }
+            }
+        })();
     </script>
 @endpush

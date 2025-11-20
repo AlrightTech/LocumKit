@@ -91,26 +91,32 @@
                                                     @endif
                                                 </div>  
                                                 <div class="col-md-7">
-                                                    
-                                                    <input value="{{ old($field['name']) }}" @if (!in_array($field['type'], ['checkbox'])) class="form-control" @endif 
-                                                    type="{{ isset($field['type']) ? $field['type'] : 'text' }}"
-                                                    @if(isset($field['type']) &&  $field['type'] == 'date')
-                                                   
+                                                    @if (isset($field['type']) && $field['type'] == 'checkbox')
+                                                        <input type="hidden" name="{{ $field['name'] }}" value="0">
+                                                        <input type="checkbox" name="{{ $field['name'] }}" id="{{ $field['name'] }}" value="1" @if (old($field['name']) == 1 || old($field['name']) == '1' || old($field['name']) === true) checked @endif @if (isset($field['validation_rules']) && str_contains($field['validation_rules'], 'required')) required @endif>
+                                                    @else
+                                                        <input value="{{ old($field['name']) }}" class="form-control @error($field['name']) is-invalid @enderror" 
+                                                        type="{{ isset($field['type']) ? $field['type'] : 'text' }}"
+                                                        @if(isset($field['type']) &&  $field['type'] == 'date')
+                                                       
+                                                        @endif
+                                                        name="{{ $field['name'] }}" id="{{ $field['name'] }}"
+                                                               @if (isset($field['placeholder'])) placeholder="{{ $field['placeholder'] }}" @endif @if (isset($field['validation_rules']) && str_contains($field['validation_rules'], 'required')) required @endif>
                                                     @endif
-                                                    name="{{ $field['name'] }}" id="{{ $field['name'] }}"
-                                                           @if (isset($field['placeholder'])) placeholder="{{ $field['placeholder'] }}" @endif @if (isset($field['validation_rules']) && str_contains($field['validation_rules'], 'required')) required @endif>
+                                                    @error($field['name'])
+                                                        <div class="text-danger" style="font-size: 12px; margin-top: 5px;">
+                                                            <i class="fa fa-exclamation-circle"></i> {{ $message }}
+                                                        </div>
+                                                    @enderror
                                                 </div>
                                             </div>
-                                            @error($field['name'])
-                                                <div class="has-error text-danger text-center">{{ $message }}</div>
-                                            @enderror
                                         </div>
                                     @endforeach
 
 
                                     <div class="col-md-12" style="padding-top: 20px;">
                                         <div class="form-group text-center">
-                                            <button type="submit" class="read-common-btn grad_btn" style="display: inline">Submit</button>
+                                            <button type="submit" id="submit-btn" class="read-common-btn grad_btn" style="display: inline">Submit</button>
                                         </div>
                                     </div>
                                 </form>
@@ -124,6 +130,40 @@
                     {{ session('success') }}
                 </div>
             @endif
+            @if (session('error'))
+                <div class="alert alert-danger bg-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        // Prevent duplicate form submissions
+        (function() {
+            'use strict';
+            var form = document.querySelector('.add_item_form');
+            var submitBtn = document.getElementById('submit-btn');
+            var isSubmitting = false;
+
+            if (form && submitBtn) {
+                form.addEventListener('submit', function(e) {
+                    if (isSubmitting) {
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    isSubmitting = true;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = 'Submitting...';
+                    if (submitBtn.style) {
+                        submitBtn.style.opacity = '0.6';
+                        submitBtn.style.cursor = 'not-allowed';
+                    }
+                });
+            }
+        })();
+    </script>
+@endpush

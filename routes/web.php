@@ -182,6 +182,24 @@ Route::get('/media/files/{path}', function ($path) {
     abort(404);
 })->where('path', '.*')->name('media.files');
 
+// Serve receipt files from public/media/receipt directory
+Route::get('/media/receipt/{filename}', function ($filename) {
+    // Security: prevent directory traversal
+    $filename = basename($filename);
+    $filePath = public_path('media/receipt/' . $filename);
+    
+    if (file_exists($filePath) && is_file($filePath)) {
+        $mimeType = mime_content_type($filePath);
+        return response()->download($filePath, $filename, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+        ]);
+    }
+    
+    // If file doesn't exist, return 404 with a clear message
+    abort(404, 'File wasn\'t available on site');
+})->where('filename', '.*')->name('media.receipt');
+
 Route::get('/', [HomeController::class, 'index'])->name('index');
 Route::get('/how-to-answer-question-fre', [HomeController::class, 'questionFreelancer'])->name('how-to-answer-question-fre');
 Route::get('/how-to-answer-question-emp', [HomeController::class, 'questionEmployer'])->name('how-to-answer-question-emp');
